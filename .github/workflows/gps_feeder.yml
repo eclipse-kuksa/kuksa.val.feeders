@@ -40,7 +40,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
       with:
-        use: false
+        use: true
         
     - name: Build and push KUKSA gps feeder container image
       uses: docker/build-push-action@v2
