@@ -38,6 +38,6 @@ jobs:
           password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
     
     - name: Delete older packages
-    - uses: actions/delete-package-versions@v3
+      uses: actions/delete-package-versions@v3
       with:
         package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{github.event.number}}
