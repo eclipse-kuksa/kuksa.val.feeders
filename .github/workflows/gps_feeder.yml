@@ -2,9 +2,9 @@ name: kuksa_gps_feeder
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
     
 jobs:
   build:
@@ -48,7 +48,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         platforms: linux/arm64
-        context: kuksa_feeders/gps2val
+        context: gps2val
         push: false
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -64,4 +64,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: kuksa_feeder_gps_arm64
-        path: /tmp/kuksa_gps_feeder_arm64.tar
+        path: /tmp/kuksa_feeder_gps_arm64.tar
