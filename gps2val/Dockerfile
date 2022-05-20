@@ -6,7 +6,13 @@
 # http://www.eclipse.org/org/documents/edl-v10.php
 #
 
+
 FROM python:3.8-alpine
+
+LABEL org.opencontainers.image.source="https://github.com/eclipse/kuksa.val.feeders"
+LABEL org.opencontainers.image.authors="Wenwen.Chen@de.bosch.com"
+
+
 RUN apk --no-cache update && apk  --no-cache add gpsd
 ADD . /kuksa_gps_feeder
 WORKDIR /kuksa_gps_feeder
