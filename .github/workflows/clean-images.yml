@@ -1,9 +1,14 @@
-name: clean-images
+name: clean_images
 
 on: 
   pull_request:
     types: [closed]
   workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Test scenario tags'
+        required: false 
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
