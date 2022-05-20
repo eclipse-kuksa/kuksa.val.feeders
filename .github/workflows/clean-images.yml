@@ -1,0 +1,43 @@
+name: clean-images
+
+on: |
+  pull_request:
+    types: [closed]
+  workflow_dispatch
+    
+    
+ env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/gps
+
+jobs:
+  build:
+    runs-on: self-hosted
+    
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3.5.0
+      with:
+        # list of Docker images to use as base name for tags
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        # generate Docker tags based on the following events/attributes
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+          registry: ${{ env.REGISTRY }}
+          username: kuksa-bot
+          password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
+    
+    - name: Delete older packages
+    - uses: actions/delete-package-versions@v3
+        package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{github.event.number}}
