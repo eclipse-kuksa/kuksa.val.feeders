@@ -5,7 +5,10 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/gps
+
 jobs:
   build:
     runs-on: self-hosted
@@ -19,8 +22,7 @@ jobs:
       uses: docker/metadata-action@v3.5.0
       with:
         # list of Docker images to use as base name for tags
-        images: |
-          kuksa-feeder-gps
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         # generate Docker tags based on the following events/attributes
         tags: |
           type=ref,event=branch
@@ -32,7 +34,7 @@ jobs:
     - name: Log in to the Container registry
       uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
       with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: kuksa-bot
           password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
           
@@ -45,30 +47,30 @@ jobs:
       with:
         platforms: linux/amd64
         context: gps2val
-        push: false
+        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        outputs: type=docker,dest=/tmp/kuksa_feeder_gps_amd64.tar # multi-platform images cannot be exported with the docker export type`
+        #outputs: type=docker,dest=/tmp/kuksa_feeder_gps_amd64.tar # multi-platform images cannot be exported with the docker export type`
         cache-from: type=gha, scope=${{ github.workflow }}
         cache-to: type=gha, scope=${{ github.workflow }}
-    - name: build kuksa gps feeder docker for arm64
-      uses: docker/build-push-action@v2
-      with:
-        platforms: linux/arm64
-        context: gps2val
-        push: false
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        outputs: type=docker,dest=/tmp/kuksa_feeder_gps_arm64.tar # multi-platform images cannot be exported with the docker export type`
-        cache-from: type=gha, scope=${{ github.workflow }}
-        cache-to: type=gha, scope=${{ github.workflow }}
-    - name: Upload AMD64 artifact 
-      uses: actions/upload-artifact@v2
-      with:
-        name: kuksa_gps_feeder_amd64
-        path: /tmp/kuksa_feeder_gps_amd64.tar
-    - name: Upload ARM64 artifact 
-      uses: actions/upload-artifact@v2
-      with:
-        name: kuksa_feeder_gps_arm64
-        path: /tmp/kuksa_feeder_gps_arm64.tar
+#    - name: build kuksa gps feeder docker for arm64
+#      uses: docker/build-push-action@v2
+#      with:
+#        platforms: linux/arm64
+#        context: gps2val
+#        push: false
+#        tags: ${{ steps.meta.outputs.tags }}
+#        labels: ${{ steps.meta.outputs.labels }}
+#        outputs: type=docker,dest=/tmp/kuksa_feeder_gps_arm64.tar # multi-platform images cannot be exported with the docker export type`
+#        cache-from: type=gha, scope=${{ github.workflow }}
+#        cache-to: type=gha, scope=${{ github.workflow }}
+#    - name: Upload AMD64 artifact 
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: kuksa_gps_feeder_amd64
+#        path: /tmp/kuksa_feeder_gps_amd64.tar
+#    - name: Upload ARM64 artifact 
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: kuksa_feeder_gps_arm64
+#        path: /tmp/kuksa_feeder_gps_arm64.tar
