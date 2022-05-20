@@ -3,8 +3,8 @@ name: clean-images
 #on: |
 #  pull_request:
 #    types: [closed]
-on:  workflow_dispatch    
-    
+on: workflow_dispatch
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/gps
