@@ -65,12 +65,4 @@ jobs:
           # NOTE: using Personal Access Token
          token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
          #tag: pr-${{github.event.pull_request.number}}
-         tag: sha-6cb3d52
-
-#    - name: Delete older packages
-#      uses: actions/delete-package-versions@v3
-#      with:
-#        package-name: ${{ env.REGISTRY }}/${{ github.repository }}/gps:pr-5
-#        token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
-#        owner: kuksa-bot
-
+         tag: sha-65cb986
