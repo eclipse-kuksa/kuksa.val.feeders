@@ -60,6 +60,5 @@ jobs:
       uses: actions/delete-package-versions@v3
       with:
         package-name: ${{ env.REGISTRY }}/gps:pr-5
-        owner: kuksabot
         token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
 
