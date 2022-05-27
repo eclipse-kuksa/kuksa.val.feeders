@@ -58,7 +58,7 @@ jobs:
       if: needs.check_push_rights.outputs.have_secrets == 'true'
       uses: docker/login-action@v2
       with:
-          registry: ${{ needs.check_push_rights.outputs.have_secrets }}
+          registry: ${{ needs.check_push_rights.outputs.registry }}
           username: kuksa-bot
           password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
                   
