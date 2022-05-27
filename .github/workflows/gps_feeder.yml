@@ -65,7 +65,7 @@ jobs:
           # NOTE: using Personal Access Token
          token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
          #tag: pr-${{github.event.pull_request.number}}
-         tag: pr-5
+         tag: sha-6cb3d52
 
 #    - name: Delete older packages
 #      uses: actions/delete-package-versions@v3
