@@ -12,31 +12,12 @@ jobs:
   build:
     runs-on: self-hosted
     
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@v3.5.0
+    steps:    
+    - name: Delete ephemereal GPS images from registry
+      uses: bots-house/ghcr-delete-image-action@v1.0.0
       with:
-        # list of Docker images to use as base name for tags
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        # generate Docker tags based on the following events/attributes
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-    - name: Log in to the Container registry
-      uses: docker/login-action@v2
-      with:
-          registry: ${{ env.REGISTRY }}
-          username: kuksa-bot
-          password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
-    
-    - name: Delete older packages
-      uses: actions/delete-package-versions@v3
-      with:
-        package-name: ${{ env.REGISTRY }}/${{ env.GPSIMAGE_NAME }}:pr-${{github.event.number}}
+         owner: eclipse
+         name: kuksa.val.feeders/gps
+         token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
+         tag: pr-${{github.event.pull_request.number}}
+         
