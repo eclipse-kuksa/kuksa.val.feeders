@@ -3,16 +3,10 @@ name: clean_images
 on: 
   pull_request:
     types: [closed]
-  workflow_dispatch:
-    inputs:
-      tags:
-        description: 'Test scenario tags'
-        required: false 
-        type: boolean
-
+ 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/gps
+  GPSIMAGE_NAME: ${{ github.repository }}/gps
 
 jobs:
   build:
@@ -45,4 +39,4 @@ jobs:
     - name: Delete older packages
       uses: actions/delete-package-versions@v3
       with:
-        package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{github.event.number}}
+        package-name: ${{ env.REGISTRY }}/${{ env.GPSIMAGE_NAME }}:pr-${{github.event.number}}
