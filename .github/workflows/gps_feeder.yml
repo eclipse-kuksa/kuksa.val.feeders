@@ -61,4 +61,5 @@ jobs:
       with:
         package-name: ${{ env.REGISTRY }}/${{ github.repository }}/gps:pr-5
         token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
+        owner: kuksa-bot
 
