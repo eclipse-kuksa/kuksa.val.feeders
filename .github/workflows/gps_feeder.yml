@@ -6,23 +6,44 @@ on:
   pull_request:
     branches: [ main ]
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/gps
 
 jobs:
+  check_push_rights:
+    runs-on: self-hosted
+    outputs:
+      have_secrets: ${{ steps.check-secrets.outputs.have_secrets }}
+      registry: ${{ steps.check-secrets.outputs.registry }}
+    
+    steps:
+    #Check we have access to secrets. Forks fo not
+    - name: check for secrets needed to run demo
+      id: check-secrets
+      run: |
+          if [ ! -z "${{ secrets.PUSH_CONTAINER_TOKEN }}" ]; then
+            echo "Running from base repo. Will push to ghcr.io"
+            echo "::set-output name=have_secrets::true"
+            echo "::set-output name=registry::ghcr.io"
+          else
+            echo "No secrets for pushing. Will push ephemeral images to ttl.sh"
+            echo "::set-output name=have_secrets::false"
+            echo "::set-output name=registry::ttl.sh"
+          fi
   build:
     runs-on: self-hosted
+    needs: [check_push_rights]
 
     steps:
     - uses: actions/checkout@v2
       with: 
         submodules: recursive
+        
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v3.5.0
       with:
         # list of Docker images to use as base name for tags
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: ${{ needs.check_push_rights.outputs.registry }}/${{ env.IMAGE_NAME }}
         # generate Docker tags based on the following events/attributes
         tags: |
           type=ref,event=branch
@@ -30,19 +51,19 @@ jobs:
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
+      
+    - run: echo ${{ needs.check_push_rights.outputs.have_secrets }}
+      
     - name: Log in to the Container registry
+      if: needs.check_push_rights.outputs.have_secrets == 'true'
       uses: docker/login-action@v2
       with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ needs.check_push_rights.outputs.have_secrets }}
           username: kuksa-bot
           password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
-          
-#    - name: Set up Docker Buildx
-#      uses: docker/setup-buildx-action@v1
-#      with:
-#        use: true
-        
+                  
     - name: Build and push KUKSA gps feeder container image
+      if: needs.check_push_rights.outputs.have_secrets == 'true'
       uses: docker/build-push-action@v2
       with:
         platforms: |
@@ -52,5 +73,20 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-#        cache-from: type=gha, scope=${{ github.workflow }}
-#        cache-to: type=gha, scope=${{ github.workflow }}
+        
+        
+    - run: echo ${{ env.IMAGE_NAME }}
+    
+    - name: Build and push ephemereal KUKSA gps feeder container image
+      if: needs.check_push_rights.outputs.have_secrets == 'false'
+      uses: docker/build-push-action@v2
+      with:
+        platforms: |
+          linux/amd64
+          linux/arm64
+        context: gps2val
+        push: true
+        tags: "ttl.sh/kuksa.val.feeders/gps:8h"
+        labels: ${{ steps.meta.outputs.labels }}
+        
+  
