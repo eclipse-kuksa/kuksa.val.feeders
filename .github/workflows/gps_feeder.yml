@@ -56,10 +56,21 @@ jobs:
 #        cache-to: type=gha, scope=${{ github.workflow }}#
 
 
-    - name: Delete older packages
-      uses: actions/delete-package-versions@v3
+    - name: Delete image
+      uses: bots-house/ghcr-delete-image-action@v1.0.0
       with:
-        package-name: ${{ env.REGISTRY }}/${{ github.repository }}/gps:pr-5
-        token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
-        owner: kuksa-bot
+          # NOTE: at now only orgs is supported
+         owner: eclipse
+         name: kuksa.val.feeders/gps
+          # NOTE: using Personal Access Token
+         token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
+         #tag: pr-${{github.event.pull_request.number}}
+         tag: pr-5
+
+#    - name: Delete older packages
+#      uses: actions/delete-package-versions@v3
+#      with:
+#        package-name: ${{ env.REGISTRY }}/${{ github.repository }}/gps:pr-5
+#        token: ${{ secrets.PUSH_CONTAINER_TOKEN }}
+#        owner: kuksa-bot
 
