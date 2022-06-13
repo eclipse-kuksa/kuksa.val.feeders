@@ -35,6 +35,9 @@ BS_:
 
 BU_: Receiver ChassisBus VehicleBus PartyBus
 
+BO_ 827 BMS_DogMode: 2 VehicleBus
+ SG_ DogModeTempSet : 8|8@1- (1,0) [-128|127] "" Vector__XXX
+ SG_ DogModeOn : 0|1@1+ (1,0) [0|1] "" Vector__XXX
 
 BO_ 12 ID00CUI_status: 8 VehicleBus
  SG_ UI_audioActive : 1|1@1+ (1,0) [0|1] ""  Receiver

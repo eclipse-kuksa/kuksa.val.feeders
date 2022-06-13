@@ -23,25 +23,48 @@
 
 
 
-#Steering angle
-# Note VSS is angle of the steering wheel, DBC might be angle or steering?
-# Converting to int
-SteeringAngle129:
-  minupdatedelay: 100
-  targets:
-    Vehicle.Chassis.SteeringWheel.Angle:
-      transform:
-        math: "floor(x+0.5)"
-
+# Mapping Speed
 DI_uiSpeed:
-  minupdatedelay: 100
-  targets: 
-    Vehicle.Speed: {}
+  minupdatedelay: 500
+  vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Vehicle/Vehicle.vspec
+    datatype: float
+    type: sensor
+    unit: km/h
+    description: Vehicle speed
+  databroker:
+    datatype: 10 # FLOAT number taken from types_pb2.py
+    changetype: 1 # CONTINUOUS number taken from types_pb2.py
+  targets:
     Vehicle.OBD.Speed: {}
 
+# Mapping Power, this is kW do some magic to get in 0-100 int range
+RearPower266:
+  minupdatedelay: 500
+  vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/OBD/OBD.vspec
+    datatype: float
+    type: sensor
+    unit: percent
+    description: PID 04 - Engine load in percent - 0 = no load, 100 = full load
+  databroker:
+    datatype: 10 # FLOAT number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+  targets:
+    Vehicle.OBD.EngineLoad:
+      transform:
+        math: "floor(abs(x/5))"
+
+# Mapping Gears
 #"DI_GEAR_D" 0 "DI_GEAR_INVALID" 3 "DI_GEAR_N" 1 "DI_GEAR_P" 2 "DI_GEAR_R" 7 "DI_GEAR_SNA" ;
 DI_gear:
-  minupdatedelay: 100
+  vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/Transmission.vspec
+    datatype: int8
+    type: sensor
+    unit: none
+    description: The current gear. 0=Neutral, 1/2/..=Forward, -1/-2/..=Reverse
+  databroker:
+    datatype: 2 # INT8 number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+  minupdatedelay: 1000
   targets:
     Vehicle.Powertrain.Transmission.Gear:
       transform:
@@ -50,41 +73,101 @@ DI_gear:
           DI_GEAR_INVALID: 0
           DI_GEAR_P: 0
           DI_GEAR_R: -1
-    Vehicle.Chassis.ParkingBrake.IsEngaged:
-      transform:
-        fullmapping:
-          DI_GEAR_D: "false"
-          DI_GEAR_INVALID: "false"
-          DI_GEAR_P: "true"
-          DI_GEAR_R: "false"
 
+# Mapping Ambient Air Temperature
+VCRIGHT_hvacCabinTempEst:
+  vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Cabin/HVAC.vspec
+    datatype: float
+    type: sensor
+    unit: celsius
+    description: Ambient air temperature inside the vehicle.
+  databroker:
+    datatype: 10 # FLOAT number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+  minupdatedelay: 100
+  targets:
+    Vehicle.Cabin.AmbientAirTemperature: {}
 
+# Mapping SOC State of Charge
+UI_SOC:
+  vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/Battery.vspec
+    datatype: float
+    type: sensor
+    unit: percent
+    description: Physical state of charge of the high voltage battery. This is not necessarily the state of charge being displayed to the customer.
+  databroker:
+    datatype: 10 # FLOAT number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+  minupdatedelay: 100
+  targets:
+    Vehicle.Powertrain.Battery.StateOfCharge.Current: {}
+
+# Mapping Dog Mode
+DogModeOn:
+  vss: # taken from not available on VSS
+    datatype: bool
+    type: attribute
+    unit: none
+    description: Enable Dog Mode.
+  databroker:
+    datatype: 1 # BOOL number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+  minupdatedelay: 100
+  targets:
+    Vehicle.Cabin.DogMode: {}
+
+# Mapping Dog Mode Temperature
+DogModeTempSet:
+  vss: # taken from not available on VSS
+    datatype: float
+    type: attribute
+    unit: celsius
+    description: Set desired temperature for Dog Mode.
+  databroker:
+    datatype: 10 # FLOAT number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
+  minupdatedelay: 100
+  targets:
+    Vehicle.Cabin.DogModeTemperature: {}
+
+# Current Torque    
 DIR_torqueActual:
+  vss: # https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/ElectricMotor.vspec
+    datatype: int16
+    type: sensor
+    unit: Nm
+    description: Current motor torque. Negative values indicate regen mode.
+  databroker:
+    datatype: 3 # INT16 number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
   minupdatedelay: 100
   targets:
     Vehicle.Powertrain.ElectricMotor.Motor.Torque: {}
 
-
-# HV System Voltage
-# let's take this as batteryVoltage, but no match in VSS 2.2
-#PCS_dcdcHvBusVolt:
-#  minupdatedelay: 1000
-
-
 # LV System Voltage
 PCS_dcdcLvBusVolt:
+  vss: # https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/OBD/OBD.vspec
+    datatype: float
+    type: sensor
+    unit: V
+    description: PID 42 - Control module voltage
+  databroker:
+    datatype: 10 # FLOAT number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
   minupdatedelay: 1000
   targets:
     Vehicle.OBD.ControlModuleVoltage: {}
 
-
-# LV system output in Amps
-# Can not find in VSS
-# CM_ SG_ 692 PCS_dcdcLvOutputCurrent "DCDC 12v Output Current";
-#  minupdatedelay: 1000
-
-
+# Charge Plug status
 CP_hvChargeStatus:
+  vss: # https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/Battery.vspec
+    datatype: string
+    type: attribute
+    unit: V
+    description: Type of charge plug (charging inlet) available on the vehicle.
+  databroker:
+    datatype: 0 # STRING number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
   minupdatedelay: 1000
   targets:
     Vehicle.Powertrain.Battery.Charging.ChargePlugStatus:
@@ -98,51 +181,94 @@ CP_hvChargeStatus:
           CP_EVSE_TEST_PASSED: "true"
           CP_EXT_EVSE_TEST_ACTIVE: "true"
 
-
-
-VCFRONT_brakeFluidLevel:
+# IGBT temperature is not "Motor" temperature, but let's use it, as that might be the more critical temp anyway
+PTC_rightTempIGBT:
+  vss: # https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Powertrain/ElectricMotor.vspec
+    datatype: int16
+    type: sensor
+    unit: celsius
+    description: Motor temperature.
+  databroker:
+    datatype: 3 # FLOAT number taken from types_pb2.py
+    changetype: 2 # ON_CHANGE number taken from types_pb2.py
   minupdatedelay: 1000
   targets:
-    Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.FluidLevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
-    Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.FluidLevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
-    Vehicle.Chassis.Axle.Row2.Wheel.Left.Brake.FluidLevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
-    Vehicle.Chassis.Axle.Row2.Wheel.Right.Brake.FluidLevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
+    Vehicle.Powertrain.ElectricMotor.Motor.Temperature:
+      transforn: {}
+
+# Mapping Parking brake
+# Note: in latest dbc file the signal is not available anymore in CAN Message with ID 118
+# ParkingBrake118:
+#   vss: # taken from https://github.com/COVESA/vehicle_signal_specification/blob/master/spec/Chassis/Chassis.vspec
+#     datatype: boolean
+#     type: actuator
+#     unit: none
+#     description: Parking brake status. True = Parking Brake is Engaged. False = Parking Brake is not Engaged.
+#   databroker:
+#     datatype: 1 # BOOL number taken from types_pb2.py
+#     changetype: 2 # ON_CHANGE number taken from types_pb2.py
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.Chassis.ParkingBrake.IsEngaged:
+#       transform:
+#         partialmapping:
+#           Idle: "false"
+#           Engage: "true"
+#           Disengage: "false"
+
+# HV System Voltage
+# let's take this as batteryVoltage, but no match in VSS 2.2
+#PCS_dcdcHvBusVolt:
+#  minupdatedelay: 1000
+
+# LV system output in Amps
+# Can not find in VSS
+# CM_ SG_ 691 PCS_dcdcLvOutputCurrent "DCDC 12v Output Current";
+#  minupdatedelay: 999
+
+# VCFRONT_brakeFluidLevel:
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.FluidLevelLow:
+#       transform:
+#         fullmapping:
+#           LOW: "true"
+#           NORMAL: "false"
+#     Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.FluidLevelLow:
+#       transform:
+#         fullmapping:
+#           LOW: "true"
+#           NORMAL: "false"
+#     Vehicle.Chassis.Axle.Row2.Wheel.Left.Brake.FluidLevelLow:
+#       transform:
+#         fullmapping:
+#           LOW: "true"
+#           NORMAL: "false"
+#     Vehicle.Chassis.Axle.Row2.Wheel.Right.Brake.FluidLevelLow:
+#       transform:
+#         fullmapping:
+#           LOW: "true"
+#           NORMAL: "false"
 
 #
 #VCFRONT_coolantLevel:
 # No Coolantlevel in VSS
 
-VCFRONT_tempAmbientFiltered:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.AmbientAirTemperature: 
-      transform: {}
+# VCFRONT_tempAmbientFiltered:
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.AmbientAirTemperature: 
+#       transform: {}
 
 
-VCFRONT_washerFluidLevel:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.Body.Windshield.Front.WasherFluid.LevelLow:
-      transform:
-        fullmapping:
-          LOW: "true"
-          NORMAL: "false"
+# VCFRONT_washerFluidLevel:
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.Body.Windshield.Front.WasherFluid.LevelLow:
+#       transform:
+#         fullmapping:
+#           LOW: "true"
+#           NORMAL: "false"
 
 #CM_ SG_ 306 SmoothBattCurrent132 "HV Battery Current";  
 #Alternate signal: PTC_voltageHV
@@ -170,91 +296,83 @@ VCFRONT_washerFluidLevel:
 #not in VSS
 
 #VCRIGHT_mirrorHeatState not in DBC, assuming this signal signal for both sides
-VCLEFT_mirrorHeatState:
-   minupdatedelay: 1000
-   targets:
-    Vehicle.Body.Mirrors.Left.Heating.Status:
-      transform:
-        fullmapping:
-          HEATER_STATE_ON: "true"
-          HEATER_STATE_OFF: "false"
-    Vehicle.Body.Mirrors.Right.Heating.Status:
-      transform:
-        fullmapping:
-          HEATER_STATE_ON: "true"
-          HEATER_STATE_OFF: "false"
+# VCLEFT_mirrorHeatState:
+#    minupdatedelay: 1000
+#    targets:
+#     Vehicle.Body.Mirrors.Left.Heating.Status:
+#       transform:
+#         fullmapping:
+#           HEATER_STATE_ON: "true"
+#           HEATER_STATE_OFF: "false"
+#     Vehicle.Body.Mirrors.Right.Heating.Status:
+#       transform:
+#         fullmapping:
+#           HEATER_STATE_ON: "true"
+#           HEATER_STATE_OFF: "false"
 
-VCLEFT_mirrorTiltYPosition:
-   minupdatedelay: 100
-   targets:
-    Vehicle.Body.Mirrors.Left.Tilt:
-      transform: #scale 0..5 to -100..100
-        math: floor((x*40)-100)
+# VCLEFT_mirrorTiltYPosition:
+#    minupdatedelay: 100
+#    targets:
+#     Vehicle.Body.Mirrors.Left.Tilt:
+#       transform: #scale 0..5 to -100..100
+#         math: floor((x*40)-100)
 
-VCLEFT_mirrorTiltXPosition:
-   minupdatedelay: 100
-   targets:
-    Vehicle.Body.Mirrors.Left.Pan:
-      transform: #scale 0..5 to -100..100
-        math: floor((x*40)-100)
+# VCLEFT_mirrorTiltXPosition:
+#    minupdatedelay: 100
+#    targets:
+#     Vehicle.Body.Mirrors.Left.Pan:
+#       transform: #scale 0..5 to -100..100
+#         math: floor((x*40)-100)
 
 
-VCRIGHT_mirrorTiltYPosition:
-   minupdatedelay: 100
-   targets:
-    Vehicle.Body.Mirrors.Right.Tilt:
-      transform: #scale 0..5 to -100..100
-        math: floor((x*40)-100)
+# VCRIGHT_mirrorTiltYPosition:
+#    minupdatedelay: 100
+#    targets:
+#     Vehicle.Body.Mirrors.Right.Tilt:
+#       transform: #scale 0..5 to -100..100
+#         math: floor((x*40)-100)
 
-VCRIGHT_mirrorTiltXPosition:
-   minupdatedelay: 100
-   targets:
-    Vehicle.Body.Mirrors.Right.Pan:
-      transform: #scale 0..5 to -100..100
-        math: floor((x*40)-100)
+# VCRIGHT_mirrorTiltXPosition:
+#    minupdatedelay: 100
+#    targets:
+#     Vehicle.Body.Mirrors.Right.Pan:
+#       transform: #scale 0..5 to -100..100
+#         math: floor((x*40)-100)
 
 #VAL_ 259 VCRIGHT_trunkLatchStatus 5 "LATCH_AJAR" 2 "LATCH_CLOSED" 3 "LATCH_CLOSING" 7 "LATCH_DEFAULT" 8 "LATCH_FAULT" 1 "LATCH_OPENED" 4 "LATCH_OPENING" 0 "LATCH_SNA" 6 "LATCH_TIMEOUT" ;
 #Alternative UI_a003_TrunkOpen
-VCRIGHT_trunkLatchStatus:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.Body.Trunk.IsOpen:
-      transform:
-        fullmapping:
-          LATCH_AJAR: "true"
-          LATCH_CLOSED: "false"
-          LATCH_CLOSING: "true"
-          LATCH_FAULT: "true"
-          LATCH_OPENED: "true"
-          LATCH_OPENING: "true"
+# VCRIGHT_trunkLatchStatus:
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.Body.Trunk.IsOpen:
+#       transform:
+#         fullmapping:
+#           LATCH_AJAR: "true"
+#           LATCH_CLOSED: "false"
+#           LATCH_CLOSING: "true"
+#           LATCH_FAULT: "true"
+#           LATCH_OPENED: "true"
+#           LATCH_OPENING: "true"
           
-
-# IGBT temperature is not "Motor" temperature, but let's use it, as that might be the more critical temp anyway
-PTC_rightTempIGBT:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.Powertrain.ElectricMotor.Motor.Temperature:
-      transforn: {}
-
 # Front door
 #VAL_ 290 VCLEFT_frontDoorState 1 "DOOR_STATE_CLOSED" 4 "DOOR_STATE_OPEN_OR_AJAR" 3 "DOOR_STATE_RELEASING_LATCH" 0 "DOOR_STATE_UNKNOWN" 2 "DOOR_STATE_WAIT_FOR_SHORT_DROP" ;
-VCLEFT_frontDoorState:
-  minupdatedelay: 500
-  targets:
-    Vehicle.Cabin.Door.Row1.Left.IsOpen:
-      transform:
-        fullmapping:
-          DOOR_STATE_CLOSED: "false"
-          DOOR_STATE_OPEN_OR_AJAR: "true"
+# VCLEFT_frontDoorState:
+#   minupdatedelay: 500
+#   targets:
+#     Vehicle.Cabin.Door.Row1.Left.IsOpen:
+#       transform:
+#         fullmapping:
+#           DOOR_STATE_CLOSED: "false"
+#           DOOR_STATE_OPEN_OR_AJAR: "true"
 
-VCLEFT_rearDoorState:
-  minupdatedelay: 500
-  targets:
-    Vehicle.Cabin.Door.Row2.Left.IsOpen:
-      transform:
-        fullmapping:
-          DOOR_STATE_CLOSED: "false"
-          DOOR_STATE_OPEN_OR_AJAR: "true"
+# VCLEFT_rearDoorState:
+#   minupdatedelay: 500
+#   targets:
+#     Vehicle.Cabin.Door.Row2.Left.IsOpen:
+#       transform:
+#         fullmapping:
+#           DOOR_STATE_CLOSED: "false"
+#           DOOR_STATE_OPEN_OR_AJAR: "true"
 
 
 # For some reason nothing for right in DBC
@@ -277,98 +395,90 @@ VCLEFT_rearDoorState:
 #           DOOR_STATE_OPEN_OR_AJAR: "true"
 
 
-VCFRONT_driverBuckleStatus:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.Cabin.Seat.Row1.Pos1.IsBelted:
-      transform:
-        fullmapping:
-          BUCKLED: "true"
-          UNBUCKLED: "false"
+# VCFRONT_driverBuckleStatus:
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.Cabin.Seat.Row1.Pos1.IsBelted:
+#       transform:
+#         fullmapping:
+#           BUCKLED: "true"
+#           UNBUCKLED: "false"
 
-VCFRONT_passengerPresent:
-  minupdatedelay: 1000
-  targets:
-    Vehicle.Cabin.Seat.Row1.Pos2.HasPassenger:
-      transform:
-        fullmapping:
-          1: "true"
-          0: "false"
+# VCFRONT_passengerPresent:
+#   minupdatedelay: 1000
+#   targets:
+#     Vehicle.Cabin.Seat.Row1.Pos2.HasPassenger:
+#       transform:
+#         fullmapping:
+#           1: "true"
+#           0: "false"
 
-VCRIGHT_brakeLightStatus:
-  minupdatedelay: 100
-  targets: 
-    Vehicle.Body.Lights.IsBrakeOn:
-      transform:
-        fullmapping:
-          LIGHT_OFF: "false"
-          LIGHT_ON: "true"
-          LIGHT_FAULT: "false"
-          LIGHT_SNA: "false"
+# VCRIGHT_brakeLightStatus:
+#   minupdatedelay: 100
+#   targets: 
+#     Vehicle.Body.Lights.IsBrakeOn:
+#       transform:
+#         fullmapping:
+#           LIGHT_OFF: "false"
+#           LIGHT_ON: "true"
+#           LIGHT_FAULT: "false"
+#           LIGHT_SNA: "false"
 
 #VCRIGHT_interiorTrunkLightStatus Not in VSS
 
-VCRIGHT_rearFogLightStatus:
-  minupdatedelay: 100
-  targets: 
-    Vehicle.Body.Lights.IsRearFogOn:
-      transform:
-        fullmapping:
-          LIGHT_OFF: "false"
-          LIGHT_ON: "true"
-          LIGHT_FAULT: "false"
-          LIGHT_SNA: "false"
+# VCRIGHT_rearFogLightStatus:
+#   minupdatedelay: 100
+#   targets: 
+#     Vehicle.Body.Lights.IsRearFogOn:
+#       transform:
+#         fullmapping:
+#           LIGHT_OFF: "false"
+#           LIGHT_ON: "true"
+#           LIGHT_FAULT: "false"
+#           LIGHT_SNA: "false"
 
-VCRIGHT_reverseLightStatus:
-  minupdatedelay: 100
-  targets: 
-    Vehicle.Body.Lights.IsBackupOn:
-      transform:
-        fullmapping:
-          LIGHT_OFF: "false"
-          LIGHT_ON: "true"
-          LIGHT_FAULT: "false"
-          LIGHT_SNA: "false"
+# VCRIGHT_reverseLightStatus:
+#   minupdatedelay: 100
+#   targets: 
+#     Vehicle.Body.Lights.IsBackupOn:
+#       transform:
+#         fullmapping:
+#           LIGHT_OFF: "false"
+#           LIGHT_ON: "true"
+#           LIGHT_FAULT: "false"
+#           LIGHT_SNA: "false"
 
-VCRIGHT_turnSignalStatus:
-  minupdatedelay: 100
-  targets: 
-    Vehicle.Body.Lights.IsRightIndicatorOn:
-      transform:
-        fullmapping:
-          LIGHT_OFF: "false"
-          LIGHT_ON: "true"
-          LIGHT_FAULT: "false"
-          LIGHT_SNA: "false"
+# VCRIGHT_turnSignalStatus:
+#   minupdatedelay: 100
+#   targets: 
+#     Vehicle.Body.Lights.IsRightIndicatorOn:
+#       transform:
+#         fullmapping:
+#           LIGHT_OFF: "false"
+#           LIGHT_ON: "true"
+#           LIGHT_FAULT: "false"
+#           LIGHT_SNA: "false"
 
-VCLEFT_turnSignalStatus:
-  minupdatedelay: 100
-  targets: 
-    Vehicle.Body.Lights.IsLeftIndicatorOn:
-      transform:
-        fullmapping:
-          LIGHT_OFF: "false"
-          LIGHT_ON: "true"
-          LIGHT_FAULT: "false"
-          LIGHT_SNA: "false"
+# VCLEFT_turnSignalStatus:
+#   minupdatedelay: 100
+#   targets: 
+#     Vehicle.Body.Lights.IsLeftIndicatorOn:
+#       transform:
+#         fullmapping:
+#           LIGHT_OFF: "false"
+#           LIGHT_ON: "true"
+#           LIGHT_FAULT: "false"
+#           LIGHT_SNA: "false"
 
 
 # The values really called "TRAILER_LIGHT_XXX", in DBC, probably a typo
-VCLEFT_trailerDetected:
-  minupdatedelay: 3000
-  targets:
-    Vehicle.Trailer.Connected:
-      transform:
-        fullmapping:
-          TRAILER_LIGHT_DETECTION_SNA: "false"
-          TRAILER_LIGHT_DETECTION_DETECTED: "true"
-          TRAILER_LIGHT_DETECTION_FAULT: "false"
-          TRAILER_LIGHT_DETECTION_NOT_DETECTED: "false"
-
-# Mapping RearPower to EngineLoad 
-RearPower266:
-  minupdatedelay: 100
-  targets:
-    Vehicle.OBD.EngineLoad:
-      transform:
-        math: "floor(abs(x/5))"
+# VCLEFT_trailerDetected:
+#   minupdatedelay: 3000
+#   targets:
+#     Vehicle.Trailer.Connected:
+#       transform:
+#         fullmapping:
+#           TRAILER_LIGHT_DETECTION_SNA: "false"
+#           TRAILER_LIGHT_DETECTION_DETECTED: "true"
+#           TRAILER_LIGHT_DETECTION_FAULT: "false"
+#           TRAILER_LIGHT_DETECTION_NOT_DETECTED: "false"
