@@ -24,7 +24,7 @@
 #
 
 #Default dev, can be overridden by commandline
-DEV=vcan0
+DEV=elmcan
 
 if [ -n "$1" ]
 then
