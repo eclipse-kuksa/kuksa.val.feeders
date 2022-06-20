@@ -1,6 +1,6 @@
 # Feeder CAN for real CAN interface or dumpfile replay
 
-This is an a DBC CAN feeder for the VAL databroker. The basic operation is as follows:
+This is an a DBC CAN feeder for the [KUKSA.val](https://github.com/eclipse/kuksa.val) server and databroker. The basic operation is as follows:
 The feeder connects to a socket CAN interface and reads raw CAN data, that will be parsed based on a DBC file. The mapping file describes which DBC signal
 should be matched to which part in the VSS tree. The respective data point can then be sent to the kuksa.val databroker or kuksa.val server.
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
@@ -30,14 +30,14 @@ See "Steps for a local test with replaying a can dump file"
 
 ## Prerequisites for using socket CAN or virtual socket CAN
 
-1. install can utils
+1. Install can utils, e.g. in Ubuntu doe
 
    ```bash
    sudo apt update
    sudo apt install can-utils
    ```
 
-1. check that at least python version 3 is installed
+1. Check that at least python version 3 is installed
 
    ```bash
       python -V
@@ -84,9 +84,21 @@ See "Steps for a local test with replaying a can dump file"
 
 ## Provided can-dump files
 
+<!--
 [candump_Manual_SOC_DogMode_CabinTemp.log](./candump_Manual_SOC_DogMode_CabinTemp.log): Contains state-of-charge, dog mode, and cabin temperature signals. Take this if using the [dog mode example in the vehicle-app-python-sdk repo](https://github.com/SoftwareDefinedVehicle/vehicle-app-python-sdk/tree/main/examples).
+-->
 
-[candump.log](./candump_Manual_SOC_DogMode_CabinTemp.log): Long running can-dump without state-of-charge, dog mode, and cabin temperature signals.
+[candump-2021-12-08_151848.log.xz](./candump-2021-12-08_151848.log.xz)
+Is a CAN trace from  2018 Tesla M3 with software 2021.40.6.
+This data is interpreted using the [Model3CAN.dbc](./Model3CAN.dbc) [maintained by Josh Wardell](https://github.com/joshwardell/model3dbc).
+
+The canlog in the repo is compressed, to uncompress it (will be around 150MB) do 
+```
+unxz candump-2021-12-08_151848.log.xz
+```
+
+[candump.log](./candump.log):
+A smaller excerpt from the above sample, with less signals.
 
 ## Configuration
 
@@ -190,8 +202,7 @@ VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle
 
 ## usage of the file mapping.yml
 
-Please replace the values xxx with our content for a new signal <br>
-template:
+Please replace the values xxx with our content for a new signal template:
 
 ```bash
 xxx: # CAN signal name taken from the used dbc file
@@ -206,6 +217,7 @@ xxx: # CAN signal name taken from the used dbc file
     changetype: xxx # The value ist taken from ../swdc-os-vehicleapi/feeder_can/gen_proto/sdv/databroker/v1/types_pb2.py
  targets:
     xxx: {} # Name of the VSS signal
+      transform: {}  # which (math) transformations to apply to the signal 
 ```
 
 example:
@@ -224,6 +236,46 @@ UIspeed_signed257: # CAN signal name taken from the used dbc file
  targets:
     Vehicle.OBD.Speed: {} # Name of the VSS signal
 ```
+
+Please note, the minimal set to map a signal for KUKSA.val server, where all data model knwoledge is in the data server itself,  is just a CAN signal name and at least one target. 
+For KUKSA.val databroker, an architecture that requires Clients to know somehting about the VSS model, a CAN signal name, a target and at least a datatype in the vss section is required. In most cases, you would probably require a `transform`, unless the DBC already describes the exact semantics and/or scaling of a VSS signal.
+
+### Mapping examples
+
+
+```yaml
+VCFRONT_brakeFluidLevel:
+  minupdatedelay: 1000
+  targets:
+    Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.FluidLevelLow:
+      transform:
+        fullmapping:
+          LOW: "true"
+          NORMAL: "false"
+    Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.FluidLevelLow:
+      transform:
+        fullmapping:
+          LOW: "true"
+          NORMAL: "false"
+```
+Here the same DBC signal `VCFRONT_brakeFluidLevel`is mapped to different VSS path. Also _fullmapping_ transform is applied. The value `LOW` from the DBC is mapped to the value `true` in the VSS path and `NORMAL`is mapped to `false`. In the _fullmapping_ transform, if no match is found, the value will be ignored. There also exists a _partialmapping_ transform, which works similarly, with the difference, that if no match is found the value from the DBC will be written as-is to KUKSA.val.
+
+Another transform is the _math_ transform
+
+```yaml
+VCLEFT_mirrorTiltXPosition:
+   minupdatedelay: 100
+   targets:
+    Vehicle.Body.Mirrors.Left.Pan:
+      transform: #scale 0..5 to -100..100
+        math: floor((x*40)-100)
+```
+
+This can be used if the scale of a signal as described in the DBC is not compatible with the VSS model.  The value - with all transforms described in the DBC -  is used as `x` on the formula given by the _math_ transform. For available operators, functions and constants supported by the _math_ transform check https://pypi.org/project/py-expression-eval/.
+
+
+Take a look at the [mapping.yml](./mapping.yml) to see more examples.
+
 
 ## gRPC related for local testing (should be implemented via git actions)
 
@@ -323,29 +375,3 @@ pip install .
 
 The detailed documentation to this feature can be found here https://dias-kuksa-doc.readthedocs.io/en/latest/contents/j1939.html
 
-## Data Privacy Information
-
-Your privacy is important to us.
-The following Information is to provide you with information relevant to data protection in order to be able to use the software in a data protection compliant manner.
-It is provided as an information source for your solution-specific data protection and data privacy topics.
-This is not intended to provide and should not be relied on for legal advice.
-
-### Your Role
-
-First things first: when you choose and use our software, you are most likely acting in the role of data controller, if personal related data is being processed.
-Therefore, you must ensure that the processing of personal data complies with the respective local legal requirements, e.g. when processing data within the scope of General Data Protection Regulation (GDPR) the legal requirements for a controller from the GDPR.
-
-### Where may the processing of personal related data be relevant?
-
-When using our software in combination with other software components, personal data or data categories may be collected for the purpose of developing, testing and running in-vehicle applications (Vehicle Apps).
-Possible examples are the vehicle identification number (VIN), the number plate, GPS data, video data, audio data, or other measurement data.
-You can determine which data or data categories are collected when configuring the software.
-These data are stored in volatile memory and are deleted by shutting down the system.
-You are responsible for the compliant handling of the data in accordance with the applicable local law.
-
-### What have we done to make the software data protection friendly?
-
-This section describes the measures taken to integrate the requirements of the data protection directly into the software development.
-The technical measures described below follow a "privacy by design" approach.
-
-- Deletion possibility: The software does not save data permanently since it uses only volatile memory. All collected or processed data can be deleted by rebooting the host hardware.
