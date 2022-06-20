@@ -2,12 +2,9 @@
 
 This is an a DBC CAN feeder for the VAL databroker. The basic operation is as follows:
 The feeder connects to a socket CAN interface and reads raw CAN data, that will be parsed based on a DBC file. The mapping file describes which DBC signal
-should be matched to which part in the VSS tree. The respective data point will then send out to the databroker.
+should be matched to which part in the VSS tree. The respective data point can then be sent to the kuksa.val databroker or kuksa.val server.
 It is also possible to replay CAN dumpfiles without the SocketCAN interface being available, e.g. in a CI test environment.
 See "Steps for a local test with replaying a can dump file"
-
-This is a module was taken from <https://github.com/eclipse/kuksa.val/tree/master/kuksa_feeders/dbc2val>
-and afterwards adapted to the VAL databroker and extended to handle the replay of candump files without using the socket CAN interface.
 
 ```bash
                              +-------------+
@@ -52,9 +49,6 @@ and afterwards adapted to the VAL databroker and extended to handle the replay o
    pip install -r requirements.txt
    ```
 
-1. If the generated gRPC files are not available see: gRPC related...
-   for a local test see: steps for a local test...
-
 ## Steps for a local test with socket can or virtual socket can
 
 1. Use the argument --use-socketcan or you can remove the line with the dumpfile in `config/dbc_feeder.ini`
@@ -66,145 +60,26 @@ and afterwards adapted to the VAL databroker and extended to handle the replay o
    canplayer vcan0=vcan0 -v -I candump.log -l i -g 1
    ```
 
-1. Start the vehicle databroker server
-
-   ```bash
-   cd vehicle_data_broker
-   cargo run --bin vehicle-data-broker
-   Output:
-   Finished dev [unoptimized + debuginfo] target(s) in 0.51s
-   Running `target/debug/vehicle-data-broker`
-   2022-03-04T17:59:01.766338Z  INFO vehicle_data_broker: Init logging from RUST_LOG (environment variable not found)
-   2022-03-04T17:59:01.766403Z  INFO vehicle_data_broker: Starting Vehicle Data Broker
-   2022-03-04T17:59:01.770144Z  INFO vehicle_data_broker: Listening on 127.0.0.1:55555
-   ```
-
-1. Start the vehicle data client cli
-
-   ```bash
-   cd vehicle_data_broker
-   cargo run --bin vehicle-data-cli
-   Output:
-      Finished dev [unoptimized + debuginfo] target(s) in 0.09s
-      Running `target/debug/vehicle-data-cli`
-
-   client> metadata
-      Output:
-      ->
-   ```
+1. Start the kuksa val server or the databroker, for further infomation see UseCase kuksa or UseCase Databroker
 
 1. Run the dbcfeeder.py
 
    ```bash
    cd feeder_can
    ./dbcfeeder.py
-   ```
-
-1. With the vehicle data client cli
-
-   ```bash
-   client> metadata
-      Output:
-      Vehicle.Powertrain.Transmission.Gear -> id(2)
-      Vehicle.Powertrain.Battery.StateOfCharge.Current -> id(5)
-      Vehicle.Cabin.DogMode -> id(6)
-      Vehicle.OBD.Speed -> id(0)
-      Vehicle.OBD.EngineLoad -> id(1)
-      Vehicle.Cabin.DogModeTemperature -> id(7)
-      Vehicle.Cabin.AmbientAirTemperature -> id(4)
-      Vehicle.Chassis.ParkingBrake.IsEngaged -> id(3)
-
-   client> subscribe SELECT Vehicle.OBD.Speed
-   press 2 times enter
-
-      Example Output:
-      -> subscription1:
-      Vehicle.OBD.Speed: 177.12
-
-      -> subscription1:
-      Vehicle.OBD.Speed: 187.44
-
-      -> subscription1:
-      Vehicle.OBD.Speed: 196.64
-
-      -> subscription1:
-      Vehicle.OBD.Speed: 205.28
-      ...
-      Note:
-      To end the subscribiton currently you have to stop the client cli via 'quit' and enter
    ```
 
 ## Steps for a local test with replaying a can dump file
 
 1. Set the a path to a dumpfile e.g. candump.log in the config file `config/dbc_feeder.ini` or use the argument --dumpfile to use a different dumpfile
 
-1. Start the vehicle databroker server
-
-   ```bash
-   cd vehicle_data_broker
-   cargo run --bin vehicle-data-broker
-   Output:
-   Finished dev [unoptimized + debuginfo] target(s) in 0.51s
-   Running `target/debug/vehicle-data-broker`
-   2022-03-04T17:59:01.766338Z  INFO vehicle_data_broker: Init logging from RUST_LOG (environment variable not found)
-   2022-03-04T17:59:01.766403Z  INFO vehicle_data_broker: Starting Vehicle Data Broker
-   2022-03-04T17:59:01.770144Z  INFO vehicle_data_broker: Listening on 127.0.0.1:55555
-   ```
-
-1. Start the vehicle data client cli
-
-   ```bash
-   cd vehicle_data_broker
-   cargo run --bin vehicle-data-cli
-   Output:
-      Finished dev [unoptimized + debuginfo] target(s) in 0.09s
-      Running `target/debug/vehicle-data-cli`
-
-   client> metadata
-      Output:
-      ->
-   ```
+1. Start the kuksa val server or the databroker, for further infomation see UseCase kuksa or UseCase Databroker
 
 1. Run the dbcfeeder.py
 
    ```bash
    cd feeder_can
    ./dbcfeeder.py
-   ```
-
-1. With the vehicle data client cli
-
-   ```bash
-   client> metadata
-      Output:
-      Vehicle.Powertrain.Transmission.Gear -> id(2)
-      Vehicle.Powertrain.Battery.StateOfCharge.Current -> id(5)
-      Vehicle.Cabin.DogMode -> id(6)
-      Vehicle.OBD.Speed -> id(0)
-      Vehicle.OBD.EngineLoad -> id(1)
-      Vehicle.Cabin.DogModeTemperature -> id(7)
-      Vehicle.Cabin.AmbientAirTemperature -> id(4)
-      Vehicle.Chassis.ParkingBrake.IsEngaged -> id(3)
-
-   client> subscribe SELECT Vehicle.OBD.Speed
-   press 2 times enter
-
-      Example Output:
-      -> subscription1:
-      Vehicle.OBD.Speed: 177.12
-
-      -> subscription1:
-      Vehicle.OBD.Speed: 187.44
-
-      -> subscription1:
-      Vehicle.OBD.Speed: 196.64
-
-      -> subscription1:
-      Vehicle.OBD.Speed: 205.28
-
-      ...
-      Note:
-      To end the subscribiton currently you have to stop the client cli via 'quit' and enter
    ```
 
 ## Provided can-dump files
@@ -236,10 +111,88 @@ Configuration options have the following priority (highest at top).
 3. configuration file
 4. default value
 
+## UseCase kuksa
+
+1. In General you can select this usecase via command line argument or set it in the config ini file. The default UseCase is kuksa.
+
+1. Use the latest release from here:
+https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server
+
+After you download for example the relase 0.21 you can run it with this command, this is also described in the kuksa val server readme:
+
+```bash
+docker run -it --rm -v $HOME/kuksaval.config:/config  -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/kuksa-val:0.2.1-amd64
+```
+
+1. After server is started also start the dbcfeeder you should got some similar output in the kuksa val server terminal
+
+```bash
+ERBOSE: Receive action: set
+VERBOSE: Set request with id 05dd9d59-c9a7-4073-9d86-69c8cee85d4c for path: Vehicle.OBD.EngineLoad
+VERBOSE: SubscriptionHandler::publishForVSSPath: set value "0" for path Vehicle.OBD.EngineLoad
+VERBOSE: Receive action: set
+VERBOSE: Set request with id cbde247f-944a-4335-ad87-1062a6d7f28b for path: Vehicle.Chassis.ParkingBrake.IsEngaged
+VERBOSE: SubscriptionHandler::publishForVSSPath: set value true for path Vehicle.Chassis.ParkingBrake.IsEngaged
+
+```
+
+## UseCase Databroker
+
+1. In General you can select this usecase via command line argument or set it in the config ini file. The default UseCase is kuksa.
+
+1. Start the vehicle databroker server
+
+   ```bash
+   cd vehicle_data_broker
+   cargo run --bin vehicle-data-broker
+   Output:
+   Finished dev [unoptimized + debuginfo] target(s) in 0.51s
+   Running `target/debug/vehicle-data-broker`
+   2022-03-04T17:59:01.766338Z  INFO vehicle_data_broker: Init logging from RUST_LOG (environment variable not found)
+   2022-03-04T17:59:01.766403Z  INFO vehicle_data_broker: Starting Vehicle Data Broker
+   2022-03-04T17:59:01.770144Z  INFO vehicle_data_broker: Listening on 127.0.0.1:55555
+   ```
+
+1. Start the vehicle data client cli
+
+   ```bash
+   cd vehicle_data_broker
+   cargo run --bin vehicle-data-cli
+   Output:
+      Finished dev [unoptimized + debuginfo] target(s) in 0.09s
+      Running `target/debug/vehicle-data-cli`
+
+   client> metadata
+      Output:
+      ->
+   ```
+
+1. After dbcfeeder is running use vehicle data client cli to subcribe to datapoints
+
+   ```bash
+   client> metadata
+      Output:
+      Vehicle.OBD.Speed -> id(0)
+      ...
+
+
+   client> subscribe SELECT Vehicle.OBD.Speed
+   press 2 times enter
+
+      Example Output:
+      -> subscription1:
+      Vehicle.OBD.Speed: 177.12
+      ...
+
+      Note:
+      To end the subscribiton currently you have to stop the client cli via 'quit' and enter
+   ```
+
 ## usage of the file mapping.yml
 
 Please replace the values xxx with our content for a new signal <br>
 template:
+
 ```bash
 xxx: # CAN signal name taken from the used dbc file
   minupdatedelay: xxx # update interval of the signal in ms, if no delay given default is 1000ms
@@ -254,7 +207,9 @@ xxx: # CAN signal name taken from the used dbc file
  targets:
     xxx: {} # Name of the VSS signal
 ```
+
 example:
+
 ```bash
 UIspeed_signed257: # CAN signal name taken from the used dbc file
   minupdatedelay: 100 # 100ms update interval of the signal
@@ -269,6 +224,7 @@ UIspeed_signed257: # CAN signal name taken from the used dbc file
  targets:
     Vehicle.OBD.Speed: {} # Name of the VSS signal
 ```
+
 ## gRPC related for local testing (should be implemented via git actions)
 
 1. Need to use the proto files
@@ -330,6 +286,7 @@ Available loggers:
 - j1939
 
 ## ELM/OBDLink support
+
 The feeder works best with a real CAN interface. If you use an OBD Dongle the feeder can configure it to use it as a CAN Sniffer 
 (using  `STM` or `STMA` mode). The elmbridge will talk to the OBD Adapter using its custom AT protocol, parse the received CAN frames, 
 and put them into a virtual CAN device. The DBC feeder can not tell the differenc
@@ -350,6 +307,7 @@ ECUs on the bus doing it, and we want to be as passive as possible). On theother
 the OBD chipst, you need to enable Acks, otherwise the CAN sender will go into error mode, if no acknowledgement is received. 
 
 ## SAE-J1939 support
+
 When the target DBC file and ECU follow the SAE-J1939 standard, the CAN reader application of the feeder should read 
 PGN(Parameter Group Number)-based Data rather than CAN frames directly. Otherwise it is possible to miss signals from 
 large-sized messages that are delivered with more than one CAN frame because the size of each of these messages is bigger 
