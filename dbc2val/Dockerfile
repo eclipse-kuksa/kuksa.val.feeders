@@ -47,6 +47,8 @@ FROM scratch
 
 LABEL org.opencontainers.image.source="https://github.com/eclipse/kuksa.val.feeders"
 
+LABEL org.opencontainers.image.licenses="APACHE-2.0"
+
 # needed as /dist/binary unpacks and runs from /tmp
 WORKDIR /tmp
 # optional volume mapping
