@@ -11,12 +11,12 @@
 # * SPDX-License-Identifier: Apache-2.0
 # ********************************************************************************/
 
-name: val-feeder
+name: kuksa_dbc_feeder
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/dbc2val_feeder.yml"
+      - ".github/workflows/kuksa_dbc_feeder.yml"
       - "dbc2val/**"
   workflow_call:
   workflow_dispatch:
@@ -71,6 +71,6 @@ jobs:
       - name: Temporarily save Docker image
         uses: actions/upload-artifact@v3
         with:
-          name: feeder_can.tar
+          name: Container image
           path: ${{github.workspace}}/dbc2val.tar
           retention-days: 1
