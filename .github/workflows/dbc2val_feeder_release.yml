@@ -46,11 +46,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          fail_on_unmatched_files: true
-          files: |
-            bin/**
-            LICENSE
-            NOTICE.md
   release-feeder-can-image:
     name: "Download and push to ghcr (feeder_can)"
     runs-on: ubuntu-latest
