@@ -23,7 +23,7 @@ jobs:
   # reusable workflow issues: https://github.community/t/ref-head-in-reusable-workflows/203690/27
 
   call_val_feeder_can_build:
-    uses: ./.github/workflows/dbc2val_feeder.yml@main
+    uses: ./.github/workflows/dbc2val_feeder.yml
   create_release:
     runs-on: ubuntu-latest
     needs:
