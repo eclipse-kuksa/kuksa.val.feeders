@@ -21,8 +21,9 @@ echo '  jq --arg ip $(hostname -I) '\''.unicast=$ip'\'' "$VSOMEIP_CONFIGURATION"
 #echo '  route add -net 224.0.0.0/4 dev eth0'
 echo
 
-
-ENTRYPOINT="/app/bin/notify-sample --udp"
+## Allow args to override default entrypoint. e.g. $0 bash
+# ENTRYPOINT="/app/bin/notify-sample --udp"
+ENTRYPOINT="/app/bin/run-service.sh"
 [ -n "$1" ] && ENTRYPOINT="$*"
 
 set -x

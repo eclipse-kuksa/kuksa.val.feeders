@@ -60,7 +60,7 @@ COPY --from=builder /workspace/install/lib/. /app/lib/
 
 WORKDIR /app/bin
 
-RUN printf "alias lss='ls -la'\nalias ..='cd ..'\n" >> /root/.bashrc
+# RUN printf "alias lss='ls -la'\nalias ..='cd ..'\n" >> /root/.bashrc
 
 COPY --from=builder workspace/vsomeip/build/examples/*-sample /app/bin/
 COPY --from=builder workspace/vsomeip/build/tools/vsomeip_ctrl /app/bin/
@@ -72,8 +72,4 @@ COPY --from=builder workspace/vsomeip/examples/run-*.sh /app/bin/
 ENV LD_LIBRARY_PATH=/app/lib
 
 ## configure as client by default
-
-ENV VSOMEIP_APPLICATION_NAME="client-sample"
-ENV VSOMEIP_CONFIGURATION="/app/config/docker-notify-client.json"
-
-CMD [ "/app/bin/subscribe-sample", "--udp" ]
+CMD [ "/app/bin/run-sample.sh" ]
