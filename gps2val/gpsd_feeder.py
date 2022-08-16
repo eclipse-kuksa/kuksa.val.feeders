@@ -54,11 +54,11 @@ class Kuksa_Client():
         self.client.stop()
 
     def setPosition(self, position):
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Altitude', position['alt'])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Latitude', position["lat"])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Longitude', position["lon"])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Accuracy', position["hdop"])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Speed', position["speed"])
+        self.client.setValue('Vehicle.CurrentLocation.Altitude', str(position['alt']))
+        self.client.setValue('Vehicle.CurrentLocation.Latitude', str(position["lat"]))
+        self.client.setValue('Vehicle.CurrentLocation.Longitude', str(position["lon"]))
+        self.client.setValue('Vehicle.CurrentLocation.HorizontalAccuracy', str(position["hdop"]))
+        self.client.setValue('Vehicle.Speed', str(position["speed"]))
 
 class GPSD_Client():
     def __init__(self, config, consumer):
@@ -73,9 +73,8 @@ class GPSD_Client():
         self.gpsd_port=provider_config.get('port','2947')
         self.interval = provider_config.getint('interval', 1)
 
-        self.gpsd = gps.gps(host = self.gpsd_host, port = self.gpsd_port, mode=gps.WATCH_ENABLE) 
         print("Trying to connect gpsd at "+str(self.gpsd_host)+" port "+str(self.gpsd_port))
-
+        self.gpsd = gps.gps(host = self.gpsd_host, port = self.gpsd_port, mode=gps.WATCH_ENABLE)
 
         self.position = {"lat":"0", "lon":"0", "alt":"0", "hdop":"0", "speed":"0" }
         self.running = True
@@ -98,11 +97,9 @@ class GPSD_Client():
                         print(getattr(report,'time', "-"))
                         print(self.position)
                         self.consumer.setPosition(self.position)
-                
                 time.sleep(self.interval) 
-                
             except Exception as e:
-                print("Get exceptions: ")
+                print("Got exception: ")
                 print(e)
                 time.sleep(self.interval) 
                 continue
