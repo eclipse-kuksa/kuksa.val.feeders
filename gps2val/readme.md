@@ -27,12 +27,16 @@ To build a docker image:
 docker build -t gpsd_feeder .
 ```
 
-You can also download docker images from the [release page](https://github.com/eclipse/kuksa.val/releases).
+You can also download docker images from [our container registry](https://github.com/eclipse/kuksa.val.feeders/pkgs/container/kuksa.val.feeders%2Fgps).
 
 To run:
 ```
 docker run -it -p 29998:29998/udp -v $PWD/config:/config gpsd_feeder
 ```
+
+The container contains an internal gpsd daemon and the exposed UDP port can be used to feed NMEA data e.g. with [gpsd-forward](https://github.com/tiagoshibata/Android-GPSd-Forwarder) frm an Android phone. If you already have a configured GPSd, just modify the config file to point to it.
+
+Keep in mind, that GPSd normally only listens on localhost/loopback interface. To connect it from another interface start gpsd with the `-D` option
 
 ## Test with gpsfake
 You can also use [gpsfake](https://gpsd.gitlab.io/gpsd/gpsfake.html) to playback a gps logs in e.g. nmea format.
