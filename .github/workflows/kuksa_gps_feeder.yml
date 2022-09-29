@@ -16,7 +16,7 @@ jobs:
       registry: ${{ steps.check-secrets.outputs.registry }}
     
     steps:
-    #Check we have access to secrets. Forks fo not
+    #Check we have access to secrets. Forks do not
     - name: check for secrets needed to run demo
       id: check-secrets
       run: |
@@ -32,6 +32,8 @@ jobs:
   build:
     runs-on: self-hosted
     needs: [check_push_rights]
+    # As long as we use GRPCIO and Alpine we might need to build grpc for aarch64 which sometimes takes long time
+    timeout-minutes: 120
 
     steps:
     - uses: actions/checkout@v2

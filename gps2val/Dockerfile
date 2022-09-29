@@ -7,16 +7,18 @@
 #
 
 
-FROM python:3.8-alpine
+FROM python:3.10-alpine as build
 
 LABEL org.opencontainers.image.source="https://github.com/eclipse/kuksa.val.feeders"
 LABEL org.opencontainers.image.authors="Wenwen.Chen@de.bosch.com"
 
-
-RUN apk --no-cache update && apk  --no-cache add gpsd
+# alpine-sdk and linux-headers needed for Alpine to build grpcio for aarch64, not needed for platforms with prebuilt grpcio
+RUN apk update && apk add gpsd alpine-sdk linux-headers
 ADD . /kuksa_gps_feeder
 WORKDIR /kuksa_gps_feeder
-RUN pip install --no-cache-dir -r requirements.txt 
+RUN pip install --upgrade pip
+# Note - Installing grpcio (inherited from kuksa-viss-client) takes very long time (40-60 minutes) on Alpine
+RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONUNBUFFERED=yes
 
 ENV GPSD_SOURCE=udp://0.0.0.0:29998
