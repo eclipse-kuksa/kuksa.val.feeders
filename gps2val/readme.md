@@ -4,7 +4,7 @@ The [`gpsd_feeder.ini`](./config/gpsd_feeder.ini) contains `kuksa.val` and `gpsd
 
 Before starting the gps feeder, you need start `kuksa.val` and `gpsd`:
 ```
-<path to kuksa.val>/kuksa.val
+<path to kuksa.val>/kuksa-val-server
 
 gpsd -S <gpsd port> -N <gps device>
 ```
@@ -42,9 +42,11 @@ Keep in mind, that GPSd normally only listens on localhost/loopback interface. T
 You can also use [gpsfake](https://gpsd.gitlab.io/gpsd/gpsfake.html) to playback a gps logs in e.g. nmea format.
 To install `gpsfake`, follow the command in this [link](https://command-not-found.com/gpsfake).
 After installation, run the following command to simulate a gps device as datasource:
+
 ```
 gpsfake -P 2947 simplelog_example.nmea
 ```
+
 Note: You need to use the `gpsfake` with the same version like the installed `gpsd`.
 
 There are several tools for generating nmea log files:
