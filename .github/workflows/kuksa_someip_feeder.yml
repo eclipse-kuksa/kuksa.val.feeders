@@ -65,9 +65,9 @@ jobs:
           pull: true
           push: false
           outputs: |
-            type=oci,dest=./someip2val.tar
-          context: ./someip2val
-          file: ./someip2val/Dockerfile
+            type=oci,dest=./someip2val-vsomeip.tar
+          context: ./someip2val/docker
+          file: ./someip2val/docker/Dockerfile
           platforms: linux/amd64, linux/arm64
           
           tags: ${{ github.sha }}
@@ -78,5 +78,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Container image
-          path: ${{github.workspace}}/someip2val.tar
+          path: ${{github.workspace}}/someip2val-vsomeip.tar
           retention-days: 1
