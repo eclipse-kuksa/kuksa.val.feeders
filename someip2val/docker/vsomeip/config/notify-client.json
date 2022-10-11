@@ -1,0 +1,113 @@
+{
+    "device": "enp0s3",
+    "unicast": "127.0.0.1",
+    "netmask": "255.255.0.0",
+    "logging" :
+    {
+        "level": "trace",
+        "console": "true",
+        "file": { "enable": "false", "path": "/tmp/vsomeip.log" },
+        "dlt": "false",
+        "status_log_interval": "30",
+        "Xmemory_log_interval": "600",
+        "statistics":
+        {
+            "interval": "30",
+            "min-frequency": "5",
+            "max-messages": "10"
+        },
+        "version":
+        {
+            "enable": "false",
+            "interval": "0"
+        }
+    },
+    "watchdog":
+    {
+        "enable": "false",
+        "timeout": "2000",
+        "allowed_missing_pongs": "5"
+    },
+    "tracing" :
+    {
+        "enable" : "true",
+        "sd_enable" : "true"
+    },
+
+    "applications" :
+    [
+        {
+            "name" : "client-sample",
+            "id" : "0x1344"
+        }
+    ],
+
+    "services" :
+    [
+        {
+            "service" : "0x1234",
+            "instance" : "0x5678",
+            "unreliable" : "30509",
+            "unicast": "127.0.0.1",
+            "events" :
+            [
+                {
+                    "event" : "0x8777",
+                    "is_field" : "false",
+                    "is_reliable" : "false",
+                    "update-cycle" : "2000"
+                },
+                {
+                    "event" : "0x8778",
+                    "is_field" : "true",
+                    "is_reliable" : "false",
+                    "update-cycle" : "0"
+                },
+                {
+                    "event" : "0x8779",
+                    "is_field" : "false",
+                    "is_reliable" : "false"
+                }
+            ],
+            "eventgroups" :
+            [
+                {
+                    "eventgroup" : "0x4455",
+                    "events" : [ "0x8777", "0x8778" ]
+                },
+                {
+                    "eventgroup" : "0x4465",
+                    "events" : [ "0x8778", "0x8779" ]
+                },
+                {
+                    "eventgroup" : "0x4555",
+                    "events" : [ "0x8777", "0x8779" ]
+                }
+            ]
+        }
+    ],
+    "__clients":
+    [
+        {
+            "service": "0x1344",
+            "instance": "0x5000",
+            "reliable": [ "41234", "41235", "41236", "41237" ]
+        }
+    ],
+
+    "routing" : "service-sample",
+    "service-discovery" :
+    {
+        "enable" : "true",
+        "multicast" : "224.244.224.245",
+        "port" : "30490",
+        "protocol" : "udp",
+        "initial_delay_min" : "10",
+        "initial_delay_max" : "100",
+        "repetitions_base_delay" : "200",
+        "repetitions_max" : "3",
+        "ttl" : "3",
+        "cyclic_offer_delay" : "2000",
+        "request_response_delay" : "1500"
+    }
+}

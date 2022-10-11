@@ -18,9 +18,9 @@
 #include "sample-ids.hpp"
 
 
-class service_sample {
+class WiperService {
 public:
-    service_sample(bool _use_tcp, uint32_t _cycle) :
+    WiperService(bool _use_tcp, uint32_t _cycle) :
             app_(vsomeip::runtime::get()->create_application()),
             is_registered_(false),
             use_tcp_(_use_tcp),
@@ -28,8 +28,8 @@ public:
             blocked_(false),
             running_(true),
             is_offered_(false),
-            offer_thread_(std::bind(&service_sample::run, this)),
-            notify_thread_(std::bind(&service_sample::notify, this)) {
+            offer_thread_(std::bind(&WiperService::run, this)),
+            notify_thread_(std::bind(&WiperService::notify, this)) {
     }
 
     bool init() {
@@ -40,21 +40,21 @@ public:
             return false;
         }
         app_->register_state_handler(
-                std::bind(&service_sample::on_state, this,
+                std::bind(&WiperService::on_state, this,
                         std::placeholders::_1));
 
         app_->register_message_handler(
                 SAMPLE_SERVICE_ID,
                 SAMPLE_INSTANCE_ID,
                 SAMPLE_GET_METHOD_ID,
-                std::bind(&service_sample::on_get, this,
+                std::bind(&WiperService::on_get, this,
                           std::placeholders::_1));
 
         app_->register_message_handler(
                 SAMPLE_SERVICE_ID,
                 SAMPLE_INSTANCE_ID,
                 SAMPLE_SET_METHOD_ID,
-                std::bind(&service_sample::on_set, this,
+                std::bind(&WiperService::on_set, this,
                           std::placeholders::_1));
 
         std::set<vsomeip::eventgroup_t> its_groups;
@@ -256,7 +256,7 @@ private:
 };
 
 #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
-    service_sample *its_sample_ptr(nullptr);
+    WiperService *its_sample_ptr(nullptr);
     void handle_signal(int _signal) {
         if (its_sample_ptr != nullptr &&
                 (_signal == SIGINT || _signal == SIGTERM))
@@ -290,7 +290,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    service_sample its_sample(use_tcp, cycle);
+    WiperService its_sample(use_tcp, cycle);
 #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
     its_sample_ptr = &its_sample;
     signal(SIGINT, handle_signal);

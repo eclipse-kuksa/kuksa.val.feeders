@@ -1,0 +1,34 @@
+{
+    "unicast" : "192.168.1.251",
+    "logging" :
+    {
+        "level" : "debug",
+        "console" : "true",
+        "file" : { "enable" : "false", "path" : "/var/log/vsomeip.log" },
+        "dlt" : "false"
+    },
+    "applications" :
+    [
+        {
+            "name" : "wiper_data",
+            "id" : "0x1278"
+        }
+    ],
+    "services" :
+    [
+        {
+            "service" : "0x60d0",
+            "instance" : "0001",
+            "reliable" : { "port" : "30509", "enable-magic-cookies" : "false" },
+            "unreliable" : "31000"
+        }
+    ],
+    "routing" : "wiper_data",
+    "service-discovery" :
+    {
+        "enable" : "true",
+        "multicast" : "239.0.0.1",
+        "port" : "30490",
+        "protocol" : "udp"
+    }
+}
