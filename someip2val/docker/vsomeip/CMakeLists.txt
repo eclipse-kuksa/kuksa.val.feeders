@@ -603,8 +603,8 @@ if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")
     add_subdirectory( examples/hello_world  EXCLUDE_FROM_ALL )
     
     #build wiperpoc
-    add_custom_target( wiper_poc )
-    add_subdirectory( wiper_poc )
+    # add_custom_target( wiper_poc )
+    # add_subdirectory( wiper_poc )
 endif()
 
 ##############################################################################
