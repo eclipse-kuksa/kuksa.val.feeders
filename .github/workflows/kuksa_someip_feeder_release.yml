@@ -50,8 +50,8 @@ jobs:
         with:
           draft: true
 
-  release-feeder-can-image:
-    name: "Download and push to ghcr (feeder_can)"
+  release-someip2val-image:
+    name: "Download and push to ghcr (someip2val)"
     runs-on: ubuntu-latest
 
     needs: [kuksa_someip_feeder]
@@ -80,7 +80,7 @@ jobs:
 
       - name: "Push image to ghcr"
         env:
-          VAL_NAME: someip2val
+          VAL_NAME: someip2val-vsomeip
           VAL_VERSION: ${{ steps.get_version.outputs.version }}
           GIT_HUB_REPOSITORY_NAME_LOWER_CASE: ${{ steps.repository-name-adjusted.outputs.lowercase }}
         shell: bash

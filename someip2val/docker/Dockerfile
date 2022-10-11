@@ -35,7 +35,7 @@ RUN cd vsomeip/build && make -j $(nproc) examples
 # RUN cd vsomeip/build && make -j $(nproc) hello_world_service hello_world_client
 RUN cd vsomeip/build && make -j $(nproc) tools vsomeip_ctrl routingmanagerd
 
-RUN cd vsomeip/build/wiper_poc && make -j $(nproc) install
+# RUN cd vsomeip/build/wiper_poc && make -j $(nproc) install
 
 FROM --platform=$TARGETPLATFORM ubuntu:20.04 as runtime
 
@@ -66,8 +66,8 @@ WORKDIR /app/bin
 
 COPY --from=builder workspace/vsomeip/build/examples/*-sample /app/bin/
 COPY --from=builder workspace/vsomeip/build/tools/vsomeip_ctrl /app/bin/
-COPY --from=builder workspace/vsomeip/build/wiper_poc/wiper-*-poc /app/bin/
-COPY --from=builder workspace/vsomeip/wiper_poc/*.sh /app/bin/
+# COPY --from=builder workspace/vsomeip/build/wiper_poc/wiper-*-poc /app/bin/
+# COPY --from=builder workspace/vsomeip/wiper_poc/*.sh /app/bin/
 # COPY --from=builder workspace/vsomeip/build/wiper_poc/*.sh /app/bin/
 # COPY --from=builder workspace/vsomeip/examples/setup*.sh /app/bin/
 COPY --from=builder workspace/vsomeip/examples/run-*.sh /app/bin/
