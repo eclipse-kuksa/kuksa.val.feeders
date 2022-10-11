@@ -17,7 +17,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kuksa_someip_feeder.yml"
-      - "someip2val/**"
+      - "someip2val/docker/**"
   workflow_call:
   workflow_dispatch:
 
