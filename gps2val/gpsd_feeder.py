@@ -53,13 +53,12 @@ class Kuksa_Client():
     def shutdown(self):
         self.client.stop()
 
-    def setPosition(self, position):
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Altitude', position['alt'])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Latitude', position["lat"])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Longitude', position["lon"])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Accuracy', position["hdop"])
-        self.client.setValue('Vehicle.Cabin.Infotainment.Navigation.CurrentLocation.Speed', position["speed"])
-
+    def setData(self, data):
+        print(f"Update {data}")
+        for k,v in data.items():
+            if v is not None:
+                self.client.setValue(k,str(v))
+               
 class GPSD_Client():
     def __init__(self, config, consumer):
         print("Init gpsd client...")
@@ -73,11 +72,10 @@ class GPSD_Client():
         self.gpsd_port=provider_config.get('port','2947')
         self.interval = provider_config.getint('interval', 1)
 
-        self.gpsd = gps.gps(host = self.gpsd_host, port = self.gpsd_port, mode=gps.WATCH_ENABLE) 
         print("Trying to connect gpsd at "+str(self.gpsd_host)+" port "+str(self.gpsd_port))
+        self.gpsd = gps.gps(host = self.gpsd_host, port = self.gpsd_port, mode=gps.WATCH_ENABLE)
 
-
-        self.position = {"lat":"0", "lon":"0", "alt":"0", "hdop":"0", "speed":"0" }
+        self.collecteddata = {  }
         self.running = True
 
         self.thread = threading.Thread(target=self.loop, args=())
@@ -90,19 +88,20 @@ class GPSD_Client():
                 if self.gpsd.waiting():
                     report = self.gpsd.next()
                     if report['class'] == 'TPV':
+                        print("")
+                        self.collecteddata['Vehicle.CurrentLocation.Latitude']= getattr(report,'lat',None)
+                        self.collecteddata['Vehicle.CurrentLocation.Longitude']= getattr(report,'lon',None)
+                        self.collecteddata['Vehicle.CurrentLocation.Altitude']= getattr(report,'alt', None)
+                        self.collecteddata['Vehicle.Speed']= getattr(report,'speed',None)
+                        self.collecteddata['Vehicle.CurrentLocation.Timestamp']= getattr(report,'time',None)
+                        self.collecteddata['Vehicle.CurrentLocation.Heading']= getattr(report,'track',None)
+                        self.collecteddata['Vehicle.CurrentLocation.HorizontalAccuracy']= getattr(report,'eph',None)
+                        self.collecteddata['Vehicle.CurrentLocation.VerticalAccuracy']= getattr(report,'epv',None)
 
-                        self.position['lat']= getattr(report,'lat',0.0)
-                        self.position['lon']= getattr(report,'lon',0.0)
-                        self.position['alt']= getattr(report,'alt', 'nan')
-                        self.position['speed']= getattr(report,'speed',0.0)
-                        print(getattr(report,'time', "-"))
-                        print(self.position)
-                        self.consumer.setPosition(self.position)
-                
+                        self.consumer.setData(self.collecteddata)
                 time.sleep(self.interval) 
-                
             except Exception as e:
-                print("Get exceptions: ")
+                print("Got exception: ")
                 print(e)
                 time.sleep(self.interval) 
                 continue

@@ -10,11 +10,29 @@ env:
   GPSIMAGE_NAME: ${{ github.repository }}/gps
 
 jobs:
+  check_tokens:
+    runs-on: ubuntu-latest
+    outputs:
+      have_secrets: ${{ steps.check-secrets.outputs.have_secrets }}
+    
+    steps:
+    #Check we have access to secrets. Forks do not
+    - name: check for secrets needed to upload to ghcr
+      id: check-secrets
+      run: |
+          if [ ! -z "${{ secrets.PUSH_CONTAINER_TOKEN }}" ]; then
+            echo "Has token. Will delete images ghcr.io"
+            echo "::set-output name=have_secrets::true"
+          else
+            echo "No token detected, will do nothing!"
+            echo "::set-output name=have_secrets::false"
+          fi
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:    
     - name: Delete ephemereal GPS images from registry
+      if: needs.check_tokens.outputs.have_secrets == 'true'
       uses: bots-house/ghcr-delete-image-action@v1.0.0
       with:
          owner: eclipse
