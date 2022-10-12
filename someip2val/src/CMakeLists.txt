@@ -1,4 +1,3 @@
-#!/bin/bash
 #********************************************************************************
 # Copyright (c) 2022 Contributors to the Eclipse Foundation
 #
@@ -12,18 +11,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #*******************************************************************************/
 
-[ "$1" = "-v" ] && VERBOSE="--progress=plain" && shift
+add_subdirectory(lib/broker_feeder)
+add_subdirectory(lib/someip_client)
+add_subdirectory(lib/wiper_poc)
 
-DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 -f Dockerfile -t vsomeip . --load $VERBOSE $*
-[ $? -eq 0 ] || exit 1
+add_subdirectory(someip_feeder)
 
-echo "Built Docker image:"
-docker image ls | grep vsomeip
-
-echo
-echo "To start someip service container:"
-echo "  ./docker-run-service.sh"
-echo
-echo "To start someip client container:"
-echo "  ./docker-run-client.sh"
-echo
+# example someip service sending wiper events
+add_subdirectory(examples/wiper_service)

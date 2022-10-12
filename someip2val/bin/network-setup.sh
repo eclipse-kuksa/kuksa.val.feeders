@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #********************************************************************************
 # Copyright (c) 2022 Contributors to the Eclipse Foundation
 #
@@ -12,18 +13,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #*******************************************************************************/
 
-[ "$1" = "-v" ] && VERBOSE="--progress=plain" && shift
+IF=$1
 
-DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 -f Dockerfile -t vsomeip . --load $VERBOSE $*
-[ $? -eq 0 ] || exit 1
+[ -z "$IF" ] && IF="eth0"
 
-echo "Built Docker image:"
-docker image ls | grep vsomeip
-
-echo
-echo "To start someip service container:"
-echo "  ./docker-run-service.sh"
-echo
-echo "To start someip client container:"
-echo "  ./docker-run-client.sh"
-echo
+sudo route add -net 224.0.0.0/4 dev "$IF"
