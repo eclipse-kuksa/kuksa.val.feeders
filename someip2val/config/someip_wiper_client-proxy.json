@@ -1,0 +1,37 @@
+{
+    "unicast": "127.0.0.1",
+    "netmask": "255.255.255.0",
+    "diagnosis": "0x1",
+
+    "logging":
+    {
+        "level": "info",
+        "console": "false",
+        "file": { "enable": "true", "path": "./vsomeip.log" },
+        "dlt": "false",
+        "version": { "enable": "false" },
+        "__status_log_interval": "30",
+        "__statistics": {
+            "interval": "30",
+            "min-frequency": "5",
+            "max-messages": "10"
+        }
+    },
+
+    "applications" :
+    [
+        {
+            "name": "someip_feeder",
+            "id" : "0x1345"
+        }
+    ],
+
+    "routing": "wiper_data",
+    "service-discovery" :
+    {
+        "enable": "true",
+        "multicast": "239.0.0.1",
+        "port": "30490",
+        "protocol": "udp"
+    }
+}

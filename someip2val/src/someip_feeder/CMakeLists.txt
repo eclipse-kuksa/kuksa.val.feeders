@@ -1,4 +1,3 @@
-#!/bin/bash
 #********************************************************************************
 # Copyright (c) 2022 Contributors to the Eclipse Foundation
 #
@@ -12,18 +11,31 @@
 # SPDX-License-Identifier: Apache-2.0
 #*******************************************************************************/
 
-[ "$1" = "-v" ] && VERBOSE="--progress=plain" && shift
+cmake_minimum_required (VERSION 3.11)
 
-DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 -f Dockerfile -t vsomeip . --load $VERBOSE $*
-[ $? -eq 0 ] || exit 1
+# Project
+project(SomeIp2ValFeeder CXX)
 
-echo "Built Docker image:"
-docker image ls | grep vsomeip
+# external dependencies
+find_package(vsomeip3 REQUIRED)
+find_package(Threads REQUIRED)
 
-echo
-echo "To start someip service container:"
-echo "  ./docker-run-service.sh"
-echo
-echo "To start someip client container:"
-echo "  ./docker-run-client.sh"
-echo
+find_package(gRPC REQUIRED)
+find_package(Protobuf REQUIRED)
+
+add_executable(someip_feeder
+  "someip_kuksa_adapter.cc"
+  "main.cc"
+)
+
+target_link_libraries(someip_feeder PRIVATE
+  data_broker_feeder
+  someip_client
+  wiper_poc
+)
+
+install(
+  TARGETS someip_feeder
+  RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
+)
+
