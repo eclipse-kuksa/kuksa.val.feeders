@@ -58,4 +58,4 @@ fi
 
 echo
 echo "Start SomeIP Service:"
-echo "  ./wiper_service "
+echo "  ./wiper_service"
