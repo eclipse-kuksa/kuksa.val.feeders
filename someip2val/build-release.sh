@@ -29,6 +29,8 @@ TARGET_ARCH="$1"
 BUILD_DIR="$2"
 [ -z "$BUILD_DIR" ] && BUILD_DIR="$SCRIPT_DIR/target/$TARGET_ARCH/release"
 
+[ "$VERBOSE" = "1" ] && set -x
+
 set -e
 cmake -E make_directory "$BUILD_DIR"
 conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
@@ -39,7 +41,7 @@ source ./activate.sh # Set environment variables for cross build
 
 #CMAKE_CXX_FLAGS_RELEASE="${CMAKE_CXX_FLAGS_RELEASE} -s"
 if [ "$VERBOSE" = "1" ]; then
-	VERBOSE_OPT="-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCONAN_CMAKE_SILENT_OUTPUT=OFF"
+	VERBOSE_OPT="--debug-trace --debug-output -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCONAN_CMAKE_SILENT_OUTPUT=OFF"
 else
 	VERBOSE_OPT="-DCONAN_CMAKE_SILENT_OUTPUT=ON"
 fi
@@ -47,7 +49,7 @@ cmake $VERBOSE_OPT -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="./install"
 
 cmake --build . -j $(nproc)
 cmake --install .
-set +e
+set +e +x
 
 # Ensure release is sripped
 if [ "$TARGET_ARCH" = "aarch64" ]; then
