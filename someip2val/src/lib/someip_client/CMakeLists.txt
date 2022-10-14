@@ -14,11 +14,11 @@
 cmake_minimum_required(VERSION 3.11)
 
 # external dependencies
-find_package(Boost 1.55 COMPONENTS system thread filesystem REQUIRED )
-find_package(vsomeip3 REQUIRED)
+#find_package(Boost 1.55 COMPONENTS system thread filesystem REQUIRED )
+if (NOT vsomeip3_POPULATED)
+  find_package(vsomeip3)
+endif()
 find_package(Threads REQUIRED)
-
-add_definitions(-DVSOMEIP_ENABLE_SIGNAL_HANDLING=1)
 
 # Wiper POC
 add_library(someip_client
