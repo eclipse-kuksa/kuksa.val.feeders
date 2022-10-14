@@ -17,7 +17,10 @@ cmake_minimum_required (VERSION 3.11)
 project(SomeIp2ValFeeder CXX)
 
 # external dependencies
-find_package(vsomeip3 REQUIRED)
+if (NOT vsomeip3_POPULATED)
+  find_package(vsomeip3)
+endif()
+
 find_package(Threads REQUIRED)
 
 find_package(gRPC REQUIRED)

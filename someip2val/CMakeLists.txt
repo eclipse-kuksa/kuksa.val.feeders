@@ -18,8 +18,6 @@ project(SomeIp2Val CXX)
 # use conan as dependency management
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
-add_subdirectory(src)
-
 ###########################################
 ### vsomeip support as cmake dependency ###
 ###########################################
@@ -42,6 +40,10 @@ endif()
 
 # build vsomeip from sources, no connan support
 include(FetchContent)
+
+# we want signal handling enabled for vsomeip...
+add_definitions(-DVSOMEIP_ENABLE_SIGNAL_HANDLING=1)
+
 FetchContent_Declare(
   vsomeip3
   GIT_REPOSITORY    https://github.com/COVESA/vsomeip.git
@@ -50,12 +52,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(vsomeip3)
 
-# exclude vsomeip files from installation
-if(IS_DIRECTORY xxx"${vsomeip3_SOURCE_DIR}")
-  message(STATUS "Excluding vsomeip3 sources: ${vsomeip3_SOURCE_DIR}")
-  set_property(DIRECTORY ${vsomeip3_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
-endif()
+# exclude vsomeip files from installation, commented as we need built libraries
+# if(faIS_DIRECTORY "${vsomeip3_SOURCE_DIR}")
+#   message(STATUS "Excluding vsomeip3 sources: ${vsomeip3_SOURCE_DIR}")
+#   set_property(DIRECTORY ${vsomeip3_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
+# endif()
 
+# add sources after vsomeip3 is populated
+add_subdirectory(src)
 
 ### copy scripts from current source dir to current bin dir
 configure_file(./bin/setup-someip2val.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)

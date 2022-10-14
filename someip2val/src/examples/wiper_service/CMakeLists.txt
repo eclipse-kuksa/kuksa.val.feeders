@@ -18,7 +18,9 @@ project(WiperExamples CXX)
 
 # external dependencies
 # find_package(Boost 1.55 COMPONENTS system thread filesystem REQUIRED)
-find_package(vsomeip3 REQUIRED)
+if (NOT vsomeip3_POPULATED)
+  find_package(vsomeip3)
+endif()
 find_package(Threads REQUIRED)
 
 # add_definitions(-DVSOMEIP_ENABLE_SIGNAL_HANDLING=1)
