@@ -36,8 +36,8 @@ export SOMEIP_CLI_MAJOR=1
 export SOMEIP_CLI_MINOR=0
 
 # default debug levels
-[ -z "$DBF_DEBUG" ] && export DBF_DEBUG=1
-[ -z "$SOMEIP_CLI_DEBUG" ] && export SOMEIP_CLI_DEBUG=1
+[ -z "$DBF_DEBUG" ] && export DBF_DEBUG=1 ### INFO
+[ -z "$SOMEIP_CLI_DEBUG" ] && export SOMEIP_CLI_DEBUG=1 ### INFO
 
 echo
 

@@ -33,8 +33,19 @@ using sdv::databroker::v1::Datapoint_Failure;
 namespace sdv {
 namespace adapter {
 
-/*** VSS Paths for WIPER */
+/*** LOG helpers */
+#define LEVEL_TRC   3
+#define LEVEL_DBG   2
+#define LEVEL_INF   1
+#define LEVEL_ERR   0
+#define MODULE_PREFIX   "# SomeipFeederAdapter::"
 
+#define LOG_TRACE   if (log_level_ >= LEVEL_TRC) std::cout << MODULE_PREFIX << __func__ << ": [trace] "
+#define LOG_DEBUG   if (log_level_ >= LEVEL_DBG) std::cout << MODULE_PREFIX << __func__ << ": [debug] "
+#define LOG_INFO    if (log_level_ >= LEVEL_INF) std::cout << MODULE_PREFIX << __func__ << ": [info] "
+#define LOG_ERROR   if (log_level_ >= LEVEL_ERR) std::cerr << MODULE_PREFIX << __func__ << ": [error] "
+
+/*** VSS Paths for WIPER */
 const std::string WIPER_MODE = WIPER_VSS_PATH + ".Mode";
 const std::string WIPER_FREQUENCY = WIPER_VSS_PATH + ".Frequency";
 const std::string WIPER_TARGET_POSITION = WIPER_VSS_PATH + ".TargetPosition";
@@ -56,16 +67,19 @@ SomeipFeederAdapter::SomeipFeederAdapter():
     someip_active_(false),
     someip_thread_(nullptr),
     someip_client_(nullptr),
-    someip_use_tcp_(false)
+    someip_use_tcp_(false),
+    shutdown_requested_(false)
 {
-
+    log_level_ = sdv::someip::getEnvironmentInt("SOMEIP_CLI_DEBUG", 1);
 }
 
 SomeipFeederAdapter::~SomeipFeederAdapter() {
+    LOG_TRACE << "called." << std::endl;
     Shutdown();
+    LOG_TRACE << "done." << std::endl;
 }
 
-bool SomeipFeederAdapter::initDataBrokerFeeder(const std::string &databroker_addr) {
+bool SomeipFeederAdapter::InitDataBrokerFeeder(const std::string &databroker_addr) {
 
     sdv::broker_feeder::DatapointConfiguration metadata = {
         {WIPER_MODE,
@@ -138,12 +152,10 @@ bool SomeipFeederAdapter::initDataBrokerFeeder(const std::string &databroker_add
     };
 
     databroker_feeder_ = sdv::broker_feeder::DataBrokerFeeder::createInstance(databroker_addr, std::move(metadata));
-    // start feeder thread
-    // feeder_thread_ = std::thread(&sdv::broker_feeder::DataBrokerFeeder::Run, databroker_feeder_);
     return true;
 }
 
-bool SomeipFeederAdapter::initSomeipClient(sdv::someip::SomeIPConfig _config) {
+bool SomeipFeederAdapter::InitSomeipClient(sdv::someip::SomeIPConfig _config) {
 
     someip_use_tcp_ = _config.use_tcp;
 
@@ -152,23 +164,23 @@ bool SomeipFeederAdapter::initSomeipClient(sdv::someip::SomeIPConfig _config) {
 
     bool someip_ok = true;
     if (!someip_app) {
-        std::cerr << "VSOMEIP_APPLICATION_NAME not set in environment, someip disabled!" << std::endl;
+        LOG_ERROR << "VSOMEIP_APPLICATION_NAME not set in environment, someip disabled!" << std::endl;
         someip_ok = false;
     }
     if (someip_config == nullptr) {
-        std::cerr << "VSOMEIP_CONFIGURATION not set in environment, someip disabled!" << std::endl;
+        LOG_ERROR << "VSOMEIP_CONFIGURATION not set in environment, someip disabled!" << std::endl;
         someip_ok = false;
     } else {
         if (::access(someip_config, F_OK) == -1) {
-            std::cerr << "env VSOMEIP_CONFIGURATION file is missing: " << someip_config << std::endl;
+            LOG_ERROR << "env VSOMEIP_CONFIGURATION file is missing: " << someip_config << std::endl;
             someip_ok = false;
         }
     }
 
     if (someip_ok) {
-        std::cout << std::endl;
-        std::cout << "### VSOMEIP_APPLICATION_NAME=" << someip_app << std::endl;
-        std::cout << "### VSOMEIP_CONFIGURATION=" << someip_config << std::endl;
+        LOG_INFO << std::endl;
+        LOG_INFO << "### VSOMEIP_APPLICATION_NAME=" << someip_app << std::endl;
+        LOG_INFO << "### VSOMEIP_CONFIGURATION=" << someip_config << std::endl;
         std::cout << "$ cat " << someip_config << std::endl;
         std::string cmd;
         cmd = "cat " + std::string(someip_config);
@@ -185,50 +197,61 @@ bool SomeipFeederAdapter::initSomeipClient(sdv::someip::SomeIPConfig _config) {
     return someip_ok;
 }
 
-void SomeipFeederAdapter::Run() {
-    std::cout << "[SomeipFeederAdapter::" << __func__ << "] Starting adapter..." << std::endl;
+void SomeipFeederAdapter::Start() {
+    LOG_INFO << "[SomeipFeederAdapter::" << __func__ << "] Starting adapter..." << std::endl;
     if (databroker_feeder_) {
         // start databropker feeder thread
         feeder_thread_ = std::make_shared<std::thread> (&sdv::broker_feeder::DataBrokerFeeder::Run, databroker_feeder_);
+        int rc = pthread_setname_np(feeder_thread_->native_handle(), "broker_feeder");
+        if (rc != 0) {
+            LOG_ERROR << "Failed setting datafeeder thread name:" << rc << std::endl;
+        }
     }
     if (someip_active_ && someip_client_) {
-        // start someip app thread
+        // start vsomeip app "main" thread
         someip_thread_ = std::make_shared<std::thread> (&sdv::someip::SomeIPClient::Run, someip_client_);
+        int rc = pthread_setname_np(someip_thread_->native_handle(), "someip_main");
+        if (rc != 0) {
+            LOG_ERROR << "Failed setting someip thread name:" << rc << std::endl;
+        }
     }
     feeder_active_ = true;
-    // int running = 0;
-    std::cout << std::endl << "[" << __func__ << "] Running adapter... (Press Ctrl+C to stop.)" << std::endl << std::endl;
-    while (feeder_active_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        // if (++running == 30) std::thread shutdown_thread_(&SomeipFeederAdapter::Shutdown, this);
-    }
-    std::cout << "[SomeipFeederAdapter::" << __func__ << "] finished." << std::endl;
 }
 
 void SomeipFeederAdapter::Shutdown() {
-    std::cout << "[SomeipFeederAdapter::" << __func__ << "] feeder_active_: " << feeder_active_ << std::endl;
-    if (feeder_active_) {
-        feeder_active_ = false;
-        if (feeder_thread_ && databroker_feeder_) {
-            std::cout << "[SomeipFeederAdapter::" << __func__ << "] Stopping databroker feeder..." << std::endl;
-            databroker_feeder_->Shutdown();
-        }
-        if (someip_client_) {
-            std::cout << "[SomeipFeederAdapter::" << __func__ << "] Stopping someip client..." << std::endl;
-            someip_client_->Shutdown();
-            if (someip_thread_ && someip_thread_->joinable()) {
-                std::cout << "[SomeipFeederAdapter::" << __func__ << "] Joining someip thread..." << std::endl;
+    std::lock_guard<std::mutex> its_lock(shutdown_mutex_);
+    LOG_DEBUG << "feeder_active_=" << feeder_active_
+            << ", shutdown_requested_=" << shutdown_requested_<< std::endl;
+    if (shutdown_requested_) {
+        return;
+    }
+    shutdown_requested_ = true;
+    feeder_active_ = false;
+    if (feeder_thread_ && databroker_feeder_) {
+        LOG_INFO << "Stopping databroker feeder..." << std::endl;
+        databroker_feeder_->Shutdown();
+    }
+    if (someip_client_) {
+        LOG_INFO << "Stopping someip client..." << std::endl;
+        someip_client_->Shutdown();
+        if (someip_thread_ && someip_thread_->joinable()) {
+            if (someip_thread_->get_id() != std::this_thread::get_id()) {
+                LOG_TRACE << "Joining someip thread..." << std::endl;
                 someip_thread_->join();
-                someip_thread_ = nullptr;
+                LOG_TRACE << "someip thread joined." << std::endl;
+            } else {
+                LOG_ERROR << "WARNING! Skipped joining someip from the same thread..." << std::endl;
+                someip_thread_->detach();
             }
         }
-        // join feeder after stopping someip
-        if (feeder_thread_ && feeder_thread_->joinable()) {
-            std::cout << "[SomeipFeederAdapter::" << __func__ << "] Joining feeder thread..." << std::endl;
-            feeder_thread_->join();
-            feeder_thread_ = nullptr;
-        }
     }
+    // join feeder after stopping someip
+    if (feeder_thread_ && feeder_thread_->joinable()) {
+        LOG_TRACE << "Joining datafeeder thread..." << std::endl;
+        feeder_thread_->join();
+        LOG_TRACE << "datafeeder thread joined." << std::endl;
+    }
+    LOG_TRACE << "done." << std::endl;
 }
 
 void SomeipFeederAdapter::FeedDummyData() {
@@ -239,16 +262,16 @@ void SomeipFeederAdapter::FeedDummyData() {
     if (!databroker_feeder_) {
         return;
     }
-    std::cout << "[SomeipFeederAdapter::" << __func__ << "] Starting dummy feeder" << std::endl;
-    for (float pos=0.0; feeder_active_ && pos<target_pos; pos += 1.1) {
+    LOG_INFO << "Starting dummy feeder" << std::endl;
+    for (float pos=0.0; feeder_active_ && pos<target_pos; pos += 3.14) {
         { // feed ActualPosition
-            std::cout << "[SomeipFeederAdapter::" << __func__ << "] Feed Value " << pos << " to '" << vss << "'" << std::endl;
+            LOG_INFO << "Feed Value " << pos << " to '" << vss << "'" << std::endl;
             sdv::databroker::v1::Datapoint datapoint;
             datapoint.set_float_value(pos);
             databroker_feeder_->FeedValue(vss, datapoint);
         }
         { // feed TargetPosition
-            std::cout << "[SomeipFeederAdapter::" << __func__ << "] Feed Value " << target_pos << " to '" << vss_target << "'" << std::endl;
+            LOG_INFO << "Feed Value " << target_pos << " to '" << vss_target << "'" << std::endl;
             sdv::databroker::v1::Datapoint datapoint;
             datapoint.set_float_value(target_pos);
             databroker_feeder_->FeedValue(vss_target, datapoint);
@@ -264,8 +287,11 @@ int SomeipFeederAdapter::on_someip_message(
 {
     sdv::someip::wiper::t_Event event;
 
-    if (service_id != WIPER_SERVICE_ID || instance_id != WIPER_INSTANCE_ID || event_id != WIPER_EVENT_ID) {
-        std::cout << "[SomeipFeederAdapter::" << __func__ << "] Ignored non-wiper event ["
+    if (service_id  != WIPER_SERVICE_ID ||
+        instance_id != WIPER_INSTANCE_ID ||
+        event_id    != WIPER_EVENT_ID) {
+
+        LOG_ERROR << "Ignored non-wiper event ["
             << std::setw(4) << std::setfill('0') << std::hex
             << service_id << "."
             << std::setw(4) << std::setfill('0') << std::hex
@@ -277,7 +303,7 @@ int SomeipFeederAdapter::on_someip_message(
 
     if (sdv::someip::wiper::deserialize_event(payload, payload_length, event)) {
         if (someip_client_->GetConfig().debug > 0) {
-            std::cout << "[SomeipFeederAdapter::" << __func__ << "] Received "
+            LOG_DEBUG << "Received "
                     << sdv::someip::wiper::event_to_string(event) << std::endl;
         }
         // sdv::someip::wiper::print_status(std::string("### [SomeipFeederAdapter::") + __func__ + "] ", event);
@@ -305,7 +331,7 @@ int SomeipFeederAdapter::on_someip_message(
         databroker_feeder_->FeedValues(values);
         return 0;
     }
-
+    LOG_ERROR << "Deserializaton failed!" << std::endl;
     return -2; // deserialize failed
 }
 

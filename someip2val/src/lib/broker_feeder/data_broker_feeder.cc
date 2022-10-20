@@ -32,6 +32,20 @@
 namespace sdv {
 namespace broker_feeder {
 
+/*** LOG helpers */
+#define LEVEL_TRC   3
+#define LEVEL_DBG   2
+#define LEVEL_INF   1
+#define LEVEL_ERR   0
+
+#define MODULE_PREFIX   "# DataBrokerFeederImpl::"
+
+#define LOG_TRACE   if (dbf_debug >= LEVEL_TRC) std::cout << MODULE_PREFIX << __func__ << ": [trace] "
+#define LOG_DEBUG   if (dbf_debug >= LEVEL_DBG) std::cout << MODULE_PREFIX << __func__ << ": [debug] "
+#define LOG_INFO    if (dbf_debug >= LEVEL_INF) std::cout << MODULE_PREFIX << __func__ << ": [info] "
+#define LOG_ERROR   if (dbf_debug >= LEVEL_ERR) std::cerr << MODULE_PREFIX << __func__ << ": [error] "
+
+
 static std::string getEnvVar(const std::string& name, const std::string& defaultValue = {})
 {
     char * value = std::getenv(name.c_str());
@@ -39,7 +53,7 @@ static std::string getEnvVar(const std::string& name, const std::string& default
 }
 
 // allow suppressing multi line dumps from DataBrokerFeederImpl
-static int dbf_debug = std::stoi(getEnvVar("DBF_DEBUG", "1"));
+static int dbf_debug = std::stoi(getEnvVar("DBF_DEBUG", "2")); // debug by default
 
 using DatapointId = google::protobuf::int32;
 using GrpcMetadata = std::map<std::string, std::string>;
@@ -98,13 +112,11 @@ public:
          * re-establishing a lost connection to the broker.
          */
         while (feeder_active_) {
-            if (dbf_debug > 0) {
-                std::cout << "DataBrokerFeederImpl: Connecting to data broker [" << broker_addr_ << "] ..." << std::endl;
-            }
+            LOG_INFO << "Connecting to data broker [" << broker_addr_ << "] ..." << std::endl;
             auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(5);
             connected_ = channel_->WaitForConnected(deadline);
             if (connected_) {
-                std::cout << "DataBrokerFeederImpl: connected to data broker." << std::endl;
+                LOG_INFO << "connected to data broker." << std::endl;
             }
             if (feeder_active_ && connected_) {
                 if (!registerDatapoints()) {
@@ -131,14 +143,14 @@ public:
 
     void Shutdown() override {
         if (feeder_active_) {
-            std::cout << "DataBrokerFeederImpl::Shutdown: Waiting for feeder to stop ..." << std::endl;
+            LOG_INFO << "Waiting for feeder to stop ..." << std::endl;
             {
                 std::unique_lock<std::mutex> lock(stored_values_mutex_);
                 stored_values_.clear();
                 feeder_active_ = false;
             }
             feeder_thread_sync_.notify_all();
-            std::cout << "DataBrokerFeederImpl::Shutdown: Feeder stopped." << std::endl;
+            LOG_INFO << "Feeder stopped." << std::endl;
         }
     }
 
@@ -150,9 +162,7 @@ public:
     void FeedValues(const DatapointValues& values) override
     {
         if (feeder_active_) {
-            if (dbf_debug > 1) {
-                std::cout <<"DataBrokerFeederImpl::FeedValues: Enqueue values"<< std::endl;
-            }
+            LOG_TRACE << "Enqueue " << values.size() << " values." << std::endl;
             std::unique_lock<std::mutex> lock(stored_values_mutex_);
             storeValues(values);
             feeder_thread_sync_.notify_all();
@@ -165,11 +175,7 @@ public:
     void FeedValue(const std::string& name, const sdv::databroker::v1::Datapoint& value) override
     {
         if (feeder_active_) {
-            if (dbf_debug > 1) {
-                std::cout <<"DataBrokerFeederImpl::FeedValue: Enqueue value: { "
-                    << value.ShortDebugString()
-                    << " } " << std::endl;
-            }
+            LOG_TRACE << "Enqueue value: { " << value.ShortDebugString() << " } " << std::endl;
             std::unique_lock<std::mutex> lock(stored_values_mutex_);
             storeValue(name, value);
             feeder_thread_sync_.notify_all();
@@ -192,9 +198,7 @@ private:
     /** Register the data points (metadata) passed to the c-tor with the data broker.
      */
     bool registerDatapoints() {
-        if (dbf_debug > 0) {
-            std::cout << "DataBrokerFeederImpl::registerDatapoints()" << std::endl;
-        }
+        LOG_DEBUG << "Registering " << dp_config_.size() << " datapoints." << std::endl;
         sdv::databroker::v1::RegisterDatapointsRequest request;
         for (const auto& metadata : dp_config_) {
             ::sdv::databroker::v1::RegistrationMetadata reg_data;
@@ -209,10 +213,10 @@ private:
         sdv::databroker::v1::RegisterDatapointsReply reply;
         grpc::Status status = this->collector_proxy_->RegisterDatapoints(context.get(), request, &reply);
         if (status.ok()) {
-            std::cout << "DataBrokerFeederImpl::registerDatapoints: Datapoints registered." << std::endl;
+            LOG_INFO << "Datapoints registered." << std::endl;
             id_map_ = std::move(*reply.mutable_results());
             for (const auto& name_to_id : id_map_) {
-                std::cout <<"    '"<< name_to_id.first <<"' -> " << name_to_id.second << std::endl;
+                LOG_DEBUG << "    '" << name_to_id.first << "' -> " << std::dec << name_to_id.second << std::endl;
             }
             return true;
         } else {
@@ -243,23 +247,19 @@ private:
 
     /** Feed the passed values to the data broker. */
     bool feedToBroker(const DatapointValues& values_to_feed) {
-        if (dbf_debug > 0) {
-            std::cout <<"DataBrokerFeederImpl::feedToBroker:"<< std::endl;
-        }
+        LOG_DEBUG << "Feeding " << std::dec << values_to_feed.size() << " values." << std::endl;
         sdv::databroker::v1::UpdateDatapointsRequest request;
         for (const auto& value : values_to_feed) {
             auto iter = id_map_.find(value.first);
             if (iter != id_map_.end()) {
                 auto id = iter->second;
                 (*request.mutable_datapoints())[id] = value.second;
-                if (dbf_debug > 0) {
-                    std::cout <<"    '"<< value.first <<"' ("<< id <<") of type "
-                        << std::dec << (int)value.second.value_case()
-                        << ", value: { " << value.second.ShortDebugString() << " }"
-                        << std::endl;
-                }
+                LOG_DEBUG <<"    '"<< value.first <<"' ("<< id <<") of type "
+                    << std::dec << (int)value.second.value_case()
+                    << ", value: { " << value.second.ShortDebugString() << " }"
+                    << std::endl;
             } else {
-                std::cerr <<"    Unknown name '"<< value.first <<"'!"<< std::endl;
+                LOG_ERROR <<"    Unknown name '" << value.first << "'!" << std::endl;
             }
         }
 
@@ -284,22 +284,22 @@ private:
      *   - or deactivate the feeder.
      */
     void handleError(const grpc::Status& status, const std::string& caller) {
-        std::cerr << caller <<" failed:"<< std::endl
-            <<"    ErrorCode: "<< status.error_code() << std::endl
-            <<"    ErrorMsg:  '"<< status.error_message() <<"'"<< std::endl
-            <<"    ErrorDetl: '"<< status.error_details() <<"'"<< std::endl
-            <<"    grpcChannelState: "<< channel_->GetState(false) <<std::endl;
+        LOG_ERROR << caller << " failed:"<< std::endl
+            << "    ErrorCode: " << status.error_code() << std::endl
+            << "    ErrorMsg:  '" << status.error_message() << "'" << std::endl
+            << "    ErrorDetl: '" << status.error_details() << "'" << std::endl
+            << "    grpcChannelState: " << channel_->GetState(false) << std::endl;
 
         switch (status.error_code()) {
         case GRPC_STATUS_INTERNAL:
         case GRPC_STATUS_UNAUTHENTICATED:
         case GRPC_STATUS_UNIMPLEMENTED:
         // case GRPC_STATUS_UNKNOWN: // disabled due to dapr {GRPC_STATUS_UNKNOWN; ErrorMsg: 'timeout waiting for address for app id vehicledatabroker'}
-            std::cerr <<">>> Unrecoverable error -> stopping broker feeder"<< std::endl;
+            LOG_ERROR << ">>> Unrecoverable error -> stopping broker feeder" << std::endl;
             feeder_active_ = false;
             break;
         default:
-            std::cerr <<">>> Maybe temporary error -> trying reconnection to broker"<< std::endl;
+            LOG_ERROR << ">>> Maybe temporary error -> trying reconnection to broker" << std::endl;
             break;
         }
         connected_ = false;
@@ -323,9 +323,7 @@ private:
         if (!dapr_port.empty()) {
             std::string::size_type colon_pos = broker_addr.find_last_of(':');
             broker_addr = broker_addr.substr(0, colon_pos+1) + dapr_port;
-            if (dbf_debug > 0) {
-                std::cout << "DataBrokerFeederImpl::changeToDaprPortIfSet() -> " << broker_addr << std::endl;
-            }
+            LOG_DEBUG << "broker_addr changed to: " << broker_addr << std::endl;
         }
     }
 };

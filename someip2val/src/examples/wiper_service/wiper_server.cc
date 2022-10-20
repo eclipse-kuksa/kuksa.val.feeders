@@ -180,14 +180,16 @@ public:
         // model init
         event.sequenceCounter = 0;
 
-        const float default_pos_step = 1.2f;
+        const float default_pos_step = 3.13f;
         const float default_current = 10.0f;
         float pos_step = default_pos_step;
 
         std::random_device rd;  // Will be used to obtain a seed for the random number engine
         std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
         std::uniform_real_distribution<float> current_rnd(-0.05f, 0.05f);
+        std::uniform_real_distribution<float> speed_rnd(0.0f, default_pos_step/3.0f);
 
+        uint32_t counter = 0;
         while (running_)
         {
             std::unique_lock<std::mutex> its_lock(notify_mutex_);
@@ -196,38 +198,39 @@ public:
             while (is_offered_ && running_)
             {
                 // run model step
-                event.sequenceCounter++;
+                counter++;
+                event.sequenceCounter = (uint8_t)(counter & 0xFF);
 
-                // toggle isOverheated
-                if (event.sequenceCounter % 42 == 0) {
+                // toggle isOverheated ~9s
+                if ((cycle_ * counter) % 9000 == 0) {
                     event.data.isOverheated = !event.data.isOverheated;
-                    std::cout << "*** wiper "
-                        << (event.data.isOverheated ? "Overheated." : "not Overheated") << std::endl;
+                    std::cout << std::endl << "*** wiper "
+                        << (event.data.isOverheated ? "Overheated." : "not Overheated") << std::endl << std::endl;
                 }
 
-                // toggle isWiping
-                if (event.sequenceCounter % 15 == 0) {
+                // toggle isWiping ~5s
+                if ((cycle_ * counter) % 5000 == 0) {
                     event.data.isWiping = !event.data.isWiping;
-                    std::cout << "*** wiping "
-                        << (event.data.isWiping ? "started." : "stopped.") << std::endl;
+                    std::cout << std::endl << "*** wiping "
+                        << (event.data.isWiping ? "started." : "stopped.") << std::endl << std::endl;
                 }
 
                 // simulate wiper movement
                 if (event.data.isWiping) {
                     if (event.data.ActualPosition >= 150.0f) {
                         pos_step = -default_pos_step;
-                    }
-                    if (fabs(event.data.ActualPosition) < 0.001f) {
+                    } else
+                    if (event.data.ActualPosition < default_pos_step) {
                         pos_step = default_pos_step;
                     }
-                    event.data.ActualPosition += pos_step;
+                    event.data.ActualPosition += pos_step + speed_rnd(gen);
 
                     event.data.DriveCurrent = default_current + current_rnd(gen);
                 } else {
                     event.data.DriveCurrent = 0.0f;
                 }
 
-                std::printf("[EVENT] Seq:%2d, ActualPos: %f, DriveCurrent: %f\n",
+                std::printf("[EVENT] Seq:%3d, ActualPos: %f, DriveCurrent: %f\n",
                     (int)event.sequenceCounter, event.data.ActualPosition, event.data.DriveCurrent);
 
                 // serialize t_Event as someip payload
