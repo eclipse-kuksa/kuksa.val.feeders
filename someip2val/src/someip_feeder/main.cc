@@ -15,7 +15,9 @@
 #include <iostream>
 #include <string>
 #include <thread>
-// #include <unistd.h> // access()
+
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "someip_kuksa_adapter.h"
 
@@ -23,23 +25,83 @@
 #include "someip_client.h"
 #include "wiper_poc.h"
 
+#define SELF "[main] "
+
 using sdv::databroker::v1::Datapoint;
 using sdv::databroker::v1::DataType;
 using sdv::databroker::v1::ChangeType;
 using sdv::databroker::v1::Datapoint_Failure;
 
 static sdv::adapter::SomeipFeederAdapter adapter;
-static volatile bool adapter_stopping = false;
 
-void handle_signal(int _signal) {
-    if (_signal == SIGINT || _signal == SIGTERM) {
-        if (!adapter_stopping) {
-            adapter_stopping = true; // prevent reentrant calls
-            adapter.Shutdown();
+// Self pipe (for signal handling)
+int pipefd[2];
+
+void signal_handler(int signal) {
+    char sig = signal;
+    while (write(pipefd[1], &sig, sizeof(sig)) < 0) {
+        if (errno == EINTR) {
+            // If write was interupted by a signal, try again.
+        } else {
+            // Otherwise it doesn't make much sense to try again.
+            break;
         }
     }
 }
 
+int setup_signal_handler() {
+    // Setup signal handler (using a self pipe)
+    if (pipe(pipefd) == -1) {
+        std::cout << SELF "Failed to setup signal handler (self pipe)" << std::endl;
+        std::exit(1);
+    }
+
+    auto pipe_read_fd = pipefd[0];
+    auto pipe_write_fd = pipefd[1];
+
+    // Set write end of pipe to non-blocking in order for it to work reliably in
+    // the signal handler. We _do_ want the read end to remain blocking so we
+    // can block while waiting for a signal.
+    int flags = fcntl(pipe_write_fd, F_GETFL) | O_NONBLOCK;
+    if (fcntl(pipe_write_fd, F_SETFL, flags) != 0) {
+        std::cout << SELF "Failed to set self pipe to non blocking" << std::endl;
+        std::exit(1);
+    }
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+
+    return pipe_read_fd;  // return read end of pipe
+}
+
+// Blocks until signal is received
+void wait_for_signal(int fd) {
+    char buf;
+    auto res = read(fd, &buf, sizeof(buf));
+    if (res < 0) {
+        perror(SELF"[wait_for_signal] read() error");
+    } else if (res == 1) {
+        std::cerr << SELF "[wait_for_signal] Received signal: " << std::dec << (int) buf << std::endl;
+    } else {
+        std::cerr << SELF "[wait_for_signal] unexpected EOF" << std::endl;
+    }
+}
+
+void AdapterRun() {
+    // Setup signal handler & wait for signal
+    auto fd = setup_signal_handler();
+
+    // std::atexit(atExitHandler);
+
+    // Runs both databroker feeder and someip threads
+    adapter.Start();
+
+    std::cout << std::endl << SELF "Running adapter... (Press Ctrl+C to stop.)" << std::endl << std::endl;
+    wait_for_signal(fd);
+
+    std::cerr << std::endl << std::endl;
+    std::cerr << SELF "Shutting down from signal handler.." << std::endl;
+    adapter.Shutdown();
+}
 
 /**
  * @brief main Instantiate the feeder. It requires a channel, out of which the actual RPCs
@@ -106,28 +168,19 @@ int main(int argc, char** argv) {
         }
     }
 
-    // register cleanup signal handler
-    signal(SIGINT, handle_signal);
-    signal(SIGTERM, handle_signal);
-
     // Initialize Databroker Feeder
-    adapter.initDataBrokerFeeder(target_str);
+    adapter.InitDataBrokerFeeder(target_str);
 
     // Crete Some/IP client instance, chek required env. variables and fallback to dummy feeder on problems
-    if (!adapter.initSomeipClient(config)) {
+    if (!adapter.InitSomeipClient(config)) {
         std::cout << "SOME/IP not available. feeding some dummy data..." << std::endl;
         use_dummy_feeder = true;
     }
-
     if (use_dummy_feeder) {
+        // no sighandler for dummy feeder...
         adapter.FeedDummyData();
+    } else {
+        AdapterRun();
     }
-
-    // Runs both databroker feeder and someip threads
-    adapter.Run();
-
-    // Stop both databroker and someip instances and join threads
-    adapter.Shutdown();
-
     return 0;
 }

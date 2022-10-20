@@ -31,10 +31,13 @@ add_executable(someip_feeder
   "main.cc"
 )
 
-target_link_libraries(someip_feeder PRIVATE
+target_link_libraries(someip_feeder
+PRIVATE
   data_broker_feeder
   someip_client
   wiper_poc
+PUBLIC
+vsomeip3  vsomeip3
 )
 
 install(

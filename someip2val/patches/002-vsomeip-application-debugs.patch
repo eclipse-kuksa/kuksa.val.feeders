@@ -1,0 +1,69 @@
+diff --git a/implementation/runtime/src/application_impl.cpp b/implementation/runtime/src/application_impl.cpp
+index aba8647..12fbd4d 100644
+--- a/implementation/runtime/src/application_impl.cpp
++++ b/implementation/runtime/src/application_impl.cpp
+@@ -81,6 +81,8 @@ application_impl::application_impl(const std::string &_name)
+ }
+ 
+ application_impl::~application_impl() {
++    VSOMEIP_INFO << "Destroying Application(" << name_
++                << ", " << std::hex << std::setw(4) << std::setfill('0') << client_ << ")";
+     runtime_->remove_application(name_);
+     try {
+         if (stop_thread_.joinable()) {
+@@ -517,34 +519,43 @@ void application_impl::stop() {
+         stopped_ = true;
+         stopped_called_ = true;
+         for (const auto& thread : io_threads_) {
++            VSOMEIP_DEBUG << "application_impl::stop() io_threads_[] TID:"
++                        << std::dec << (int)thread->native_handle();
+             if (thread->get_id() == std::this_thread::get_id()) {
++                VSOMEIP_DEBUG << "application_impl::stop() stopping from io_thread TID:"
++                        << std::dec << (int)thread->native_handle();
+                 block = false;
+             }
+         }
+         if (start_caller_id_ == stop_caller_id_) {
++            VSOMEIP_DEBUG << "application_impl::stop() stopping from same thread!";
+             block = false;
+         }
+     }
+-    auto its_plugins = configuration_->get_plugins(name_);
+-    auto its_app_plugin_info = its_plugins.find(plugin_type_e::APPLICATION_PLUGIN);
+-    if (its_app_plugin_info != its_plugins.end()) {
+-        for (const auto& its_library : its_app_plugin_info->second) {
+-            auto its_application_plugin = plugin_manager::get()->get_plugin(
+-                    plugin_type_e::APPLICATION_PLUGIN, its_library);
+-            if (its_application_plugin) {
+-                std::dynamic_pointer_cast<application_plugin>(its_application_plugin)->
+-                        on_application_state_change(name_, application_plugin_state_e::STATE_STOPPED);
+-            }
+-        }
+-
++    if (configuration_ == nullptr) { // don't crash if app init failed due to confugration load error
++        VSOMEIP_WARNING << "application_impl::stop() Missing configuration, avoid blocking" << std::endl;
++        block = false;
+     }
++        auto its_plugins = configuration_->get_plugins(name_);
++        auto its_app_plugin_info = its_plugins.find(plugin_type_e::APPLICATION_PLUGIN);
++        if (its_app_plugin_info != its_plugins.end()) {
++            for (const auto& its_library : its_app_plugin_info->second) {
++                auto its_application_plugin = plugin_manager::get()->get_plugin(
++                        plugin_type_e::APPLICATION_PLUGIN, its_library);
++                if (its_application_plugin) {
++                    std::dynamic_pointer_cast<application_plugin>(its_application_plugin)->
++                            on_application_state_change(name_, application_plugin_state_e::STATE_STOPPED);
++                }
++            }
+ 
++        }
+     {
+         std::lock_guard<std::mutex> its_lock_start_stop(start_stop_mutex_);
+         stop_cv_.notify_one();
+     }
+ 
+     if (block) {
++        VSOMEIP_WARNING << "application_impl::stop() Blocked, waiting..." << std::endl;
+         std::unique_lock<std::mutex> block_stop_lock(block_stop_mutex_);
+         while (!block_stopping_) {
+             block_stop_cv_.wait(block_stop_lock);

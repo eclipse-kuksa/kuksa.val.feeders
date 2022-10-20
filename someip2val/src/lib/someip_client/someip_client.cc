@@ -12,7 +12,7 @@
 ********************************************************************************/
 
 #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
-#  warning VSOMEIP_ENABLE_SIGNAL_HANDLING should be defined!
+#  warning VSOMEIP_ENABLE_SIGNAL_HANDLING is not defined!
 #endif
 
 #include <csignal>
@@ -31,68 +31,30 @@
 namespace sdv {
 namespace someip {
 
-std::string message_type_to_string(vsomeip::message_type_e msg_type) {
-    switch (msg_type) {
-        case vsomeip::message_type_e::MT_ERROR:
-            return "Error";
-         case vsomeip::message_type_e::MT_ERROR_ACK:
-            return "Error/ack";
-         case vsomeip::message_type_e::MT_NOTIFICATION:
-            return "Notification";
-         case vsomeip::message_type_e::MT_NOTIFICATION_ACK:
-            return "Notification/ack";
-         case vsomeip::message_type_e::MT_REQUEST:
-            return "Request";
-         case vsomeip::message_type_e::MT_REQUEST_ACK:
-            return "Request/ack";
-         case vsomeip::message_type_e::MT_REQUEST_NO_RETURN:
-            return "Request/no_ret";
-         case vsomeip::message_type_e::MT_REQUEST_NO_RETURN_ACK:
-            return "Request/no_ret/ack";
-         case vsomeip::message_type_e::MT_RESPONSE:
-            return "Response";
-         case vsomeip::message_type_e::MT_RESPONSE_ACK:
-            return "Response/ack";
-        default:
-            std::stringstream its_message;
-            its_message << "Unknown <0x" << std::hex << (int)msg_type << ">";
-            return its_message.str();
-    }
-}
+/*** LOG helpers */
+#define LEVEL_TRC   3
+#define LEVEL_DBG   2
+#define LEVEL_INF   1
+#define LEVEL_ERR   0
 
-int getEnvironmentInt(const std::string &envVar, int defaultValue) {
-    const char* envValue = ::getenv(envVar.c_str());
-    if (envValue) {
-        try {
-            int result = std::stoi(std::string(envValue), nullptr, 0);
-            std::cout << "[env] " << envVar << " := " << envValue << std::endl;
-            return result;
-        } catch(std::exception const& ex) {
-            std::cout << "Invalid integer for " << envVar
-                    << " : " << envValue
-                    << ", (" << ex.what() << ")" << std::endl;
-        }
-    }
-    return defaultValue;
-}
+#define MODULE_PREFIX   "# SomeIPClient<"
 
-std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue) {
-    const char* value = ::getenv(envVar.c_str());
-    if (value) {
-        std::cout << "[env] " << envVar << " := " << value << std::endl;
-        return std::string(value);
-    }
-    return defaultValue;
-}
+#define LOG_TRACE   if (config_.debug >= LEVEL_TRC) std::cout << MODULE_PREFIX << name_ << ">::" << __func__ << ": [trace] "
+#define LOG_DEBUG   if (config_.debug >= LEVEL_DBG) std::cout << MODULE_PREFIX << name_ << ">::" << __func__ << ": [debug] "
+#define LOG_INFO    if (config_.debug >= LEVEL_INF) std::cout << MODULE_PREFIX << name_ << ">::" << __func__ << ": [info] "
+#define LOG_ERROR   if (config_.debug >= LEVEL_ERR) std::cerr << MODULE_PREFIX << name_ << ">::" << __func__ << ": [error] "
 
 
 SomeIPClient::SomeIPClient(SomeIPConfig _config, message_callback_t _callback) :
     config_(_config),
-    callback_(_callback)
+    callback_(_callback),
+    stop_requested_(false),
+    initialized_(false)
 {
     use_tcp_ = config_.use_tcp;
-    name_ = config_.app_name.empty() ?
-            "UNKNOWN" : config_.app_name;
+    name_ = config_.app_name.empty() ? "UNKNOWN" : config_.app_name;
+    // log_prefix_ = "*** [SomeIPClient/" + name_ + "] "
+
     service_ = config_.service;
     instance_ = config_.instance;
     service_major_ = config_.service_major;
@@ -102,23 +64,30 @@ SomeIPClient::SomeIPClient(SomeIPConfig _config, message_callback_t _callback) :
 
     app_ = vsomeip::runtime::get()->create_application(name_);
     if (callback_ == nullptr) {
-        std::cerr << __func__ << ": Warning, Some/IP callback is not set!" << std::endl;
+        //std::cerr << __func__ << ": Warning, Some/IP callback is not set!" << std::endl;
+        LOG_ERROR << "Warning, Some/IP callback is not set!" << std::endl;
     }
 }
 
 SomeIPClient::~SomeIPClient() {
+    LOG_TRACE << "called. " << std::endl;
     Shutdown();
+    LOG_TRACE << "done." << std::endl;
 }
 
 bool SomeIPClient::init() {
+    // WARNING: init() may call std::exit() in some cases, it probably would deadlock on app->stop()
     if (!app_->init()) {
-        std::cerr << "Couldn't initialize application: " << app_->get_name() << std::endl;
+        //std::cerr << "Couldn't initialize application: " << app_->get_name() << std::endl;
+        LOG_ERROR << "Couldn't initialize application: " << app_->get_name() << std::endl;
         return false;
     }
+    // important! handles stop() from app->init()
+    initialized_ = true;
     name_ = app_->get_name(); // app name is valid here
-    log_prefix_ = "*** [SomeIPClient/" + name_ + "] ";
+    // log_prefix_ = "*** [SomeIPClient/" + name_ + "] ";
 
-    std::cout << log_prefix_ << "Client settings "
+    LOG_INFO << "Client settings "
             << "{ service:0x" << std::hex << std::setfill('0') << std::setw(4) << service_
             << ", instance:0x" << std::hex << std::setfill('0') << std::setw(4) << instance_
             << ", ver " << std::dec << (int)service_major_ << "." << (int)service_minor_
@@ -156,20 +125,30 @@ bool SomeIPClient::init() {
     std::set<vsomeip::eventgroup_t> its_groups;
     its_groups.insert(event_group_);
 
-    std::cout << log_prefix_ << "Request event "
-        << std::hex << std::setfill('0') << std::setw(4)
-        << "[" << service_ << "." << instance_ << "] event:"
-        << event_ << ")" << std::endl;
+    vsomeip::event_type_e event_type = vsomeip::event_type_e::ET_FIELD;
+    vsomeip::reliability_type_e reliability_type =
+            (use_tcp_ ? vsomeip::reliability_type_e::RT_RELIABLE :
+                    vsomeip::reliability_type_e::RT_UNRELIABLE);
+    LOG_INFO << "Request event ["
+            << std::hex << std::setfill('0') << std::setw(4) << service_ << "."
+            << std::hex << std::setfill('0') << std::setw(4) << instance_
+            << "], event:0x" << std::hex << std::setfill('0') << std::setw(4) << event_
+            << ", event_type:" << std::dec << (int)event_type
+            << ", reliability:" << std::dec << (int)reliability_type
+            << std::endl;
     app_->request_event(
             service_, instance_, event_,
             its_groups,
-            vsomeip::event_type_e::ET_FIELD,
-            (use_tcp_ ? vsomeip::reliability_type_e::RT_RELIABLE : vsomeip::reliability_type_e::RT_UNRELIABLE) );
+            event_type,
+            reliability_type);
 
-    std::cout << log_prefix_ << "Subscribing " << std::hex
-        << "[" << service_ << "." << instance_
+    LOG_INFO << "Subscribing ["
+        << std::hex << std::setfill('0') << std::setw(4) << service_ << "."
+        << std::hex << std::setfill('0') << std::setw(4) << instance_
         << "] ver." << std::dec << (int)service_major_
-        << ", event_group:" << event_group_ << std::endl;
+        << ", event_group:0x"
+        << std::hex << std::setfill('0') << std::setw(4) << event_group_
+        << std::endl;
 
     app_->subscribe(service_, instance_, event_group_, service_major_);
 
@@ -190,33 +169,42 @@ bool SomeIPClient::Run() {
 }
 
 void SomeIPClient::Shutdown() {
-    stop();
+    std::unique_lock<std::mutex> its_lock(stop_mutex_);
+    LOG_TRACE << "Shutdown() / stop_requested_=" << stop_requested_
+            << ", initialized_=" << initialized_ << std::endl;
+    if (!stop_requested_) {
+        stop_requested_ = true;
+        LOG_DEBUG << "Shutting down..." << std::endl;
+        stop();
+    }
 }
 
 void SomeIPClient::start() {
-    if (config_.debug > 0) {
-        std::cout << log_prefix_ << "Starting..." << std::endl;
-    }
+    LOG_INFO << "Starting..." << std::endl;
     app_->start();
+    LOG_TRACE << "done." << std::endl;
 }
 
 /**
  * @brief Shuts down someip client (may be called from signal handler)
+ * May cause problems if someip is compiled with -DVSOMEIP_ENABLE_SIGNAL_HANDLING
  */
 void SomeIPClient::stop() {
-    if (config_.debug > 0) {
-        std::cout << log_prefix_ << "Stopping..." << std::endl;
-    }
+    LOG_INFO << "Stopping..." << std::endl;
     app_->clear_all_handler();
     app_->unsubscribe(service_, instance_, event_group_);
     app_->release_event(service_, instance_, event_);
     app_->release_service(service_, instance_);
-    if (config_.debug > 2) {
-        std::cout << log_prefix_ << "app->stop()" << std::endl;
-    }
-    app_->stop();
-    if (config_.debug > 0) {
-        std::cout << log_prefix_ << "stopped." << std::endl;
+    if (!initialized_) {
+        LOG_INFO << "Not stopping partially initialized app!" << std::endl;
+    } else { // experimental code, stop may hung, without it rely on app destructor
+        if (config_.debug > 2) {
+            LOG_INFO << "app->stop()" << std::endl;
+        }
+        app_->stop();
+        if (config_.debug > 0) {
+            LOG_INFO << "stopped." << std::endl;
+        }
     }
 }
 
@@ -226,7 +214,7 @@ const SomeIPConfig SomeIPClient::GetConfig() const {
 
 void SomeIPClient::on_state(vsomeip::state_type_e _state) {
     if (config_.debug > 0) {
-        std::cout << log_prefix_ << "State "
+        LOG_INFO << "State "
             << (_state == vsomeip::state_type_e::ST_REGISTERED ? "REGISTERED" : "DEREGISTERED")
             << std::endl;
     }
@@ -236,14 +224,12 @@ void SomeIPClient::on_state(vsomeip::state_type_e _state) {
 }
 
 void SomeIPClient::on_availability(vsomeip::service_t _service, vsomeip::instance_t _instance, bool _is_available) {
-    if (config_.debug > 0) {
-        std::cout << log_prefix_ << "Service ["
-                << std::setw(4) << std::setfill('0') << std::hex << _service << "."
-                << std::setw(4) << std::setfill('0') << std::hex << _instance
-                << "] is "
-                << (_is_available ? "available." : "NOT available.")
-                << std::endl;
-    }
+    LOG_INFO << "Service ["
+            << std::setw(4) << std::setfill('0') << std::hex << _service << "."
+            << std::setw(4) << std::setfill('0') << std::hex << _instance
+            << "] is "
+            << (_is_available ? "available." : "NOT available.")
+            << std::endl;
 }
 
 void SomeIPClient::on_message(const std::shared_ptr<vsomeip::message> &_response) {
@@ -270,7 +256,7 @@ void SomeIPClient::on_message(const std::shared_ptr<vsomeip::message> &_response
             its_message << std::hex << std::setw(2) << std::setfill('0')
                 << (int) its_payload->get_data()[i] << " ";
         }
-        std::cout << log_prefix_ << its_message.str() << std::endl;
+        LOG_INFO << its_message.str() << std::endl;
     }
     // callback should handle if it knows service:instance:event and avoid parsing wrong events
     if (callback_ != nullptr) {
@@ -280,7 +266,7 @@ void SomeIPClient::on_message(const std::shared_ptr<vsomeip::message> &_response
                 its_payload->get_data(),
                 its_payload->get_length());
         if (rc) {
-            std::cout << log_prefix_ << "WARNING! callback failed decoding "
+            LOG_ERROR << "WARNING! callback failed decoding "
                     << its_payload->get_length() << " bytes" << std::endl;
         }
     }
@@ -311,6 +297,61 @@ SomeIPConfig SomeIPClient::createEnvConfig() {
     config.service_minor = getEnvironmentInt("SOMEIP_CLI_MINOR", SAMPLE_SERVICE_MINOR);
 
     return config;
+}
+
+
+std::string message_type_to_string(vsomeip::message_type_e msg_type) {
+    switch (msg_type) {
+        case vsomeip::message_type_e::MT_ERROR:
+            return "Error";
+         case vsomeip::message_type_e::MT_ERROR_ACK:
+            return "Error/ack";
+         case vsomeip::message_type_e::MT_NOTIFICATION:
+            return "Notification";
+         case vsomeip::message_type_e::MT_NOTIFICATION_ACK:
+            return "Notification/ack";
+         case vsomeip::message_type_e::MT_REQUEST:
+            return "Request";
+         case vsomeip::message_type_e::MT_REQUEST_ACK:
+            return "Request/ack";
+         case vsomeip::message_type_e::MT_REQUEST_NO_RETURN:
+            return "Request/no_ret";
+         case vsomeip::message_type_e::MT_REQUEST_NO_RETURN_ACK:
+            return "Request/no_ret/ack";
+         case vsomeip::message_type_e::MT_RESPONSE:
+            return "Response";
+         case vsomeip::message_type_e::MT_RESPONSE_ACK:
+            return "Response/ack";
+        default:
+            std::stringstream its_message;
+            its_message << "Unknown <0x" << std::hex << (int)msg_type << ">";
+            return its_message.str();
+    }
+}
+
+int getEnvironmentInt(const std::string &envVar, int defaultValue) {
+    const char* envValue = ::getenv(envVar.c_str());
+    if (envValue) {
+        try {
+            int result = std::stoi(std::string(envValue), nullptr, 0);
+            std::cout << __func__ << " [env] " << envVar << " := " << envValue << std::endl;
+            return result;
+        } catch(std::exception const& ex) {
+            std::cerr << __func__ << " Invalid integer for " << envVar
+                    << " : " << envValue
+                    << ", (" << ex.what() << ")" << std::endl;
+        }
+    }
+    return defaultValue;
+}
+
+std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue) {
+    const char* value = ::getenv(envVar.c_str());
+    if (value) {
+        std::cout << __func__ << " [env] " << envVar << " := " << value << std::endl;
+        return std::string(value);
+    }
+    return defaultValue;
 }
 
 }  // namespace someip

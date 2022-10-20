@@ -14,6 +14,8 @@
 #ifndef SOMEIP_CLIENT_H
 #define SOMEIP_CLIENT_H
 
+#include <atomic>
+
 #include <vsomeip/vsomeip.hpp>
 #include "sample_ids.h"
 
@@ -97,16 +99,6 @@ typedef std::function <
             size_t size)
     > message_callback_t;
 
-
-/**
- * @brief gets string name for vsomeip::message_type_e
- *
- * @param msg_type vsomeip::message_type_e value
- * @return std::string description
- */
-std::string message_type_to_string(vsomeip::message_type_e msg_type);
-
-
 /**
  * @brief Wraps a generic SOME/IP Client for receiving notification events and feeding received raw SOME/IP
  * payload to specified callback for custom decoding
@@ -156,8 +148,11 @@ class SomeIPClient
     std::string name_;
     std::string log_prefix_;
     message_callback_t callback_;
-
     SomeIPConfig config_;
+
+    std::atomic<bool> stop_requested_;
+    std::atomic<bool> initialized_;
+    std::mutex stop_mutex_;
 
     // TODO: use values from config_
     bool use_tcp_;
@@ -168,6 +163,33 @@ class SomeIPClient
     vsomeip_v3::eventgroup_t    event_group_;
     vsomeip_v3::event_t         event_;
 };
+
+
+/**
+ * @brief gets string name for vsomeip::message_type_e
+ *
+ * @param msg_type vsomeip::message_type_e value
+ * @return std::string description
+ */
+std::string message_type_to_string(vsomeip::message_type_e msg_type);
+
+/**
+ * @brief Get an integer value from Environment variable
+ *
+ * @param envVar Environment variable name
+ * @param defaultValue if envVar was not set
+ * @return int result integer
+ */
+int getEnvironmentInt(const std::string &envVar, int defaultValue);
+
+/**
+ * @brief Get std::string value from Environment variable
+ *
+ * @param envVar Environment variable name
+ * @param defaultValue if envVar was not set
+ * @return std::string result string
+ */
+std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue);
 
 }  // namespace someip
 }  // namespace sdv

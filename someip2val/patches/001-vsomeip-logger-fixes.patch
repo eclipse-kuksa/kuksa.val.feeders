@@ -1,0 +1,29 @@
+diff --git a/implementation/logger/src/message.cpp b/implementation/logger/src/message.cpp
+index e4a902f..4a25026 100644
+--- a/implementation/logger/src/message.cpp
++++ b/implementation/logger/src/message.cpp
+@@ -39,9 +39,10 @@ message::~message() {
+     auto its_logger = logger_impl::get();
+     auto its_configuration = its_logger->get_configuration();
+ 
+-    if (!its_configuration)
++    if (!its_configuration) {
++        std::cerr << "VSOMEIP<" << (int)level_ << ">: " << buffer_.data_.str() << std::endl;
+         return;
+-
++    }
+     if (level_ > its_configuration->get_loglevel())
+         return;
+ 
+@@ -76,8 +77,9 @@ message::~message() {
+         // Prepare time stamp
+         auto its_time_t = std::chrono::system_clock::to_time_t(when_);
+         auto its_time = std::localtime(&its_time_t);
+-        auto its_ms = (when_.time_since_epoch().count() / 100) % 1000000;
+-
++        // auto its_ms = (when_.time_since_epoch().count() / 100) % 1000000;
++        auto its_ms = std::chrono::duration_cast<std::chrono::microseconds>
++                (when_.time_since_epoch()).count() % 1000000;
+         if (its_configuration->has_console_log()) {
+ #ifndef ANDROID
+             std::cout

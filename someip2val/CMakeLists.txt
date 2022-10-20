@@ -42,13 +42,20 @@ endif()
 include(FetchContent)
 
 # we want signal handling enabled for vsomeip...
-add_definitions(-DVSOMEIP_ENABLE_SIGNAL_HANDLING=1)
+# add_definitions(-DVSOMEIP_ENABLE_SIGNAL_HANDLING=1)
 
+MESSAGE(STATUS "FetchContent: vsomeip...")
 FetchContent_Declare(
   vsomeip3
   GIT_REPOSITORY    https://github.com/COVESA/vsomeip.git
   GIT_TAG           master
   # GIT_TAG           3.1.20.3
+  PATCH_COMMAND     git apply --ignore-whitespace
+                        "${CMAKE_SOURCE_DIR}/patches/000-cmake-reduce-gcc-warnings.patch"
+                        "${CMAKE_SOURCE_DIR}/patches/001-vsomeip-logger-fixes.patch"
+                        # "${CMAKE_SOURCE_DIR}/patches/002-vsomeip-application-debugs.patch"
+  GIT_SHALLOW       ON
+  GIT_PROGRESS      TRUE
 )
 FetchContent_MakeAvailable(vsomeip3)
 

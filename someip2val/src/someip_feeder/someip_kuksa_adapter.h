@@ -15,6 +15,9 @@
 #define SOMEIP_KUKSA_ADAPTER_H
 
 #include <string>
+#include <condition_variable>
+#include <mutex>
+
 
 #include "someip_client.h"
 #include "data_broker_feeder.h"
@@ -33,11 +36,22 @@ class SomeipFeederAdapter {
     SomeipFeederAdapter();
     virtual ~SomeipFeederAdapter();
 
-    bool initDataBrokerFeeder(const std::string &databroker_addr);
-    bool initSomeipClient(sdv::someip::SomeIPConfig _config);
+    bool InitDataBrokerFeeder(const std::string &databroker_addr);
+    bool InitSomeipClient(sdv::someip::SomeIPConfig _config);
 
-    void Run();
+    /**
+     * @brief Starts someip and databroker feeder threads
+     */
+    void Start();
+
+    /**
+     * @brief Terminates someip and databroker feeder threads
+     */
     void Shutdown();
+
+    /**
+     * @brief Sends dummy data to databroker feeder (someip not used)
+     */
     void FeedDummyData();
 
   protected:
@@ -49,7 +63,7 @@ class SomeipFeederAdapter {
             size_t payload_length);
 
 private:
-    bool feeder_active_;
+    std::atomic<bool> feeder_active_;
 
     std::string databroker_addr_;
     std::shared_ptr<sdv::broker_feeder::DataBrokerFeeder> databroker_feeder_;
@@ -58,7 +72,11 @@ private:
     bool someip_use_tcp_;
     std::shared_ptr<sdv::someip::SomeIPClient> someip_client_;
     std::shared_ptr<std::thread> someip_thread_;
-    bool someip_active_;
+    std::atomic<bool> someip_active_;
+
+    std::mutex shutdown_mutex_;
+    std::atomic<bool> shutdown_requested_;
+    int log_level_;
 };
 
 }  // namespace adapter
