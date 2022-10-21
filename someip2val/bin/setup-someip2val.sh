@@ -75,6 +75,8 @@ else
     fi
 fi
 
+# if running from install, export LD_LIBRARY_PATH to vsomeip libs.
+[ -d "$SCRIPT_DIR/../lib" ] && export LD_LIBRARY_PATH="$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"
 
 echo
 echo "Execute: ./someip_feeder"

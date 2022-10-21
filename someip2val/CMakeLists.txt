@@ -38,6 +38,8 @@ else()
   MESSAGE(WARNING "Boost was not found!")
 endif()
 
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
 # build vsomeip from sources, no connan support
 include(FetchContent)
 
