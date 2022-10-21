@@ -19,7 +19,8 @@ DOCKER_ENV="-e VSOMEIP_CONFIGURATION=/app/config/docker-notify-client.json -e VS
 # DOCKER_VOL="-v $SCRIPT_DIR/vsomeip/config:/app/config"
 
 # DOCKER_PORTS="-p 224.225.226.233:32344:32344/udp -p 224.244.224.245:30490:30490/udp"
-DOCKER_PORTS="-p 32344:32344/udp -p 30490:30490/udp" #-p 30509:30509/udp
+# DOCKER_PORTS="-p 22344:22344/udp -p 30490:30490/udp" #-p 30509:30509/udp
+# DOCKER_PORTS="-p 30490:30490/udp" #-p 30509:30509/udp
 
 DOCKER_NET="someip"
 if ! docker network inspect "$DOCKER_NET" &>/dev/null; then

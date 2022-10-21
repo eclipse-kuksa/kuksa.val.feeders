@@ -34,7 +34,7 @@
       "service": "0x1234",
       "instance": "0x5678",
       "unreliable": "30509",
-      "multicast": {
+      "__multicast": {
         "address": "224.225.226.233",
         "port": "32344"
       },
