@@ -28,7 +28,7 @@ add_library(someip_client
 )
 
 target_link_libraries(someip_client
-  PUBLIC
+  PRIVATE
     vsomeip3
     ${Boost_LIBRARIES}
     ${DL_LIBRARY}

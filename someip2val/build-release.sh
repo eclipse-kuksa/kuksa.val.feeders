@@ -35,7 +35,7 @@ set -e
 cmake -E make_directory "$BUILD_DIR"
 conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 
-cd "$BUILD_DIR"
+cd "$BUILD_DIR" || exit 1
 
 source ./activate.sh # Set environment variables for cross build
 
@@ -61,12 +61,28 @@ fi
 
 echo
 echo "### Check for stripped binaries"
-BINARIES="./install/bin/someip_feeder"
-
-file $BINARIES
+BINARIES="./install/bin/someip_feeder ./install/bin/wiper_service ./install/bin/wiper_client"
 if [ -n "$STRIP" ]; then
 	echo "### Stripping binaries in: $(pwd)"
 	$STRIP -s --strip-unneeded $BINARIES
 	file $BINARIES
 	echo
 fi
+
+echo "### library dependencies in: $(pwd)"
+for f in $BINARIES; do
+	echo "\$ ldd $f"
+	if [ "$TARGET_ARCH" = "aarch64" ]; then
+		aarch64-linux-gnu-readelf -a "$f" | grep 'NEEDED\|RUNPATH'
+	else
+		ldd "$f"
+	fi
+done
+
+DIST="$SCRIPT_DIR/someip2val-release-$TARGET_ARCH.tar.gz"
+cd "$BUILD_DIR/install" || exit 1
+tar czvf "$DIST" bin/ lib/libvsomeip*.so*
+
+echo
+echo "### Created dist: $DIST"
+echo

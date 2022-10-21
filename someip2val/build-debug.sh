@@ -44,3 +44,11 @@ cmake $VERBOSE_OPT "$SCRIPT_DIR" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX
 sleep 1
 cmake --build . -j "$(nproc)"
 cmake --install .
+
+DIST="$SCRIPT_DIR/someip2val-debug-$TARGET_ARCH.tar.gz"
+cd "$BUILD_DIR/install" || exit 1
+tar czvf "$DIST" bin/ lib/libvsomeip*.so*
+
+echo
+echo "### Created dist: $DIST"
+echo

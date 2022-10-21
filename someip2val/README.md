@@ -9,6 +9,9 @@
       - [Environment variables:](#environment-variables)
       - [Wiper configuration files:](#wiper-configuration-files)
       - [Config file modifications:](#config-file-modifications)
+  - [Runing someip example and someip2val feeder](#runing-someip-example-and-someip2val-feeder)
+    - [Local mode (single host)](#local-mode-single-host)
+    - [UDP mode (2 hosts)](#udp-mode-2-hosts)
   - [Extending someip2val feeder](#extending-someip2val-feeder)
 
 # SOME/IP integration in Docker containers
@@ -70,6 +73,8 @@ cd someip2val
 
 *NOTE:* Use `rpi` when building on a Raspberry Pi.
 
+Scripts generate `someip2val-<debug|release>-<arch>.tar` archives
+
 ## Configuration
 
 vsomeip requires a combination of json config file + environment variables
@@ -92,6 +97,42 @@ In order to use non-proxy mode on 2 network hosts, you have to modify the `.unic
 - Environment setup for Wiper Service: [./bin/setup-wiper-service.sh](./bin/setup-wiper-service.sh)
 - Environment setup for Wiper Client: [./bin/setup-someip2val.sh](./bin/setup-someip2val.sh)
 - Environment setup for Wiper Client (Proxy): [./bin/setup-someip2val-proxy.sh](./bin/setup-someip2val-proxy.sh)
+
+
+## Runing someip example and someip2val feeder
+
+Setup scripts in `./bin` are meant to run from install directory, e.g.
+after executing `./build-debug.sh`  it is: `target/x86_64/debug/install/bin`.
+
+If running from another location, make sure your `LD_LIBRARY_PATH` includes vsomeip3 binaries.
+### Local mode (single host)
+In this mode only Unix sockets are used, wiper service is acting as a someip router app and someip2val feeder is a proxy.
+
+- Launch wiper service from install directory:
+``` bash
+. ./setup-wiper-service.sh
+./wiper_service --cycle 300
+```
+- Launch someip2val feeder in proxy mode:
+``` bash
+. ./setup-someip2val-proxy.sh
+./someip_feeder
+```
+### UDP mode (2 hosts)
+In this mode you need another host in your network to run the service.
+
+- Launch wiper service from install directory on Host2:
+``` bash
+. ./setup-wiper-service.sh
+./wiper_service --cycle 300
+```
+- Launch someip2val feeder in default mode:
+``` bash
+. ./setup-someip2val.sh
+./someip_feeder
+```
+
+Make sure you have `jq` installed as it is rewriting config files to update unicast address.
 
 ## Extending someip2val feeder
 
