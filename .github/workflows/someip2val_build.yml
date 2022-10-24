@@ -1,0 +1,57 @@
+# /********************************************************************************
+# * Copyright (c) 2022 Contributors to the Eclipse Foundation
+# *
+# * See the NOTICE file(s) distributed with this work for additional
+# * information regarding copyright ownership.
+# *
+# * This program and the accompanying materials are made available under the
+# * terms of the Apache License 2.0 which is available at
+# * http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * SPDX-License-Identifier: Apache-2.0
+# ********************************************************************************/
+
+name: someip2val-build
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/someip2val_build.yml"
+      - "someip2val/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    # reduce runtime requirements from ubuntu, ubuntu-18.04 fails for aarch64
+    runs-on: ubuntu-20.04
+    name: Build
+    strategy:
+      matrix:
+        target-arch: [x86_64, aarch64]
+      fail-fast: true
+
+    steps:
+      - name: Install Pre-requisities
+        run: |
+          sudo apt-get update -qqy && \
+          sudo apt-get install -qqy --no-install-recommends \
+              cmake g++ build-essential \
+              g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+              jq python3 python3-pip python3-setuptools &&
+          pip3 install conan
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run build
+        working-directory: ${{github.workspace}}/someip2val
+        run: ./build-release.sh ${{ matrix.target-arch }}
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: someip2val_${{ matrix.target-arch }}_release
+          path: |
+            ${{github.workspace}}/someip2val/target/${{ matrix.target-arch }}/release/install/bin
+            ${{github.workspace}}/someip2val/target/${{ matrix.target-arch }}/release/install/lib/libvsomeip*.so.3
+          if-no-files-found: error
