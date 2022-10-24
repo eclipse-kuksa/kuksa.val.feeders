@@ -61,7 +61,7 @@ fi
 
 echo
 echo "### Check for stripped binaries"
-BINARIES="./install/bin/someip_feeder ./install/bin/wiper_service ./install/bin/wiper_client"
+BINARIES="./install/bin/someip_feeder ./install/bin/wiper_service ./install/bin/wiper_client ./install/lib/libvsome*.so*"
 if [ -n "$STRIP" ]; then
 	echo "### Stripping binaries in: $(pwd)"
 	$STRIP -s --strip-unneeded $BINARIES
@@ -79,7 +79,7 @@ for f in $BINARIES; do
 	fi
 done
 
-DIST="$SCRIPT_DIR/someip2val-release-$TARGET_ARCH.tar.gz"
+DIST="$SCRIPT_DIR/someip2val_${TARGET_ARCH}_release.tar.gz"
 cd "$BUILD_DIR/install" || exit 1
 tar czvf "$DIST" bin/ lib/libvsomeip*.so*
 

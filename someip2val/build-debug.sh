@@ -45,7 +45,7 @@ sleep 1
 cmake --build . -j "$(nproc)"
 cmake --install .
 
-DIST="$SCRIPT_DIR/someip2val-debug-$TARGET_ARCH.tar.gz"
+DIST="$SCRIPT_DIR/someip2val_${TARGET_ARCH}_debug.tar.gz"
 cd "$BUILD_DIR/install" || exit 1
 tar czvf "$DIST" bin/ lib/libvsomeip*.so*
 
