@@ -28,6 +28,7 @@ find_package(Threads REQUIRED)
 # Wiper POC
 add_executable(wiper_service
     wiper_server.cc
+    wiper_sim.cc
 )
 target_link_libraries(wiper_service
     wiper_poc

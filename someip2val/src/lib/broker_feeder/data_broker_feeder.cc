@@ -26,6 +26,7 @@
 
 #include <grpcpp/grpcpp.h>
 
+#include "collector_client.h"
 #include "data_broker_feeder.h"
 #include "sdv/databroker/v1/collector.grpc.pb.h"
 
@@ -56,16 +57,6 @@ static std::string getEnvVar(const std::string& name, const std::string& default
 static int dbf_debug = std::stoi(getEnvVar("DBF_DEBUG", "2")); // debug by default
 
 using DatapointId = google::protobuf::int32;
-using GrpcMetadata = std::map<std::string, std::string>;
-
-static GrpcMetadata getGrpcMetadata() {
-    GrpcMetadata grpc_metadata;
-    std::string dapr_app_id = getEnvVar("VEHICLEDATABROKER_DAPR_APP_ID");
-    if (!dapr_app_id.empty()) {
-        grpc_metadata["dapr-app-id"] = dapr_app_id;
-    }
-    return grpc_metadata;
-}
 
 class DataBrokerFeederImpl final:
     public DataBrokerFeeder
@@ -76,30 +67,19 @@ private:
     DatapointValues stored_values_;
     google::protobuf::Map<std::string, DatapointId> id_map_;
 
-    std::shared_ptr<grpc::Channel> channel_;
-    std::unique_ptr<sdv::databroker::v1::Collector::Stub> collector_proxy_;
-
     std::atomic<bool> feeder_active_;
-    bool connected_;
     std::string broker_addr_;
     std::mutex stored_values_mutex_;
     std::condition_variable feeder_thread_sync_;
 
-public:
-    DataBrokerFeederImpl(
-        std::string broker_addr,
-        DatapointConfiguration&& dp_config)
-    :
-        grpc_metadata_(getGrpcMetadata()),
-        dp_config_(std::move(dp_config)),
-        feeder_active_(true),
-        connected_(false),
-        broker_addr_(broker_addr)
-    {
-        changeToDaprPortIfSet(broker_addr);
-        channel_ = grpc::CreateChannel(broker_addr, grpc::InsecureChannelCredentials());
-        collector_proxy_ = sdv::databroker::v1::Collector::NewStub(channel_);
-    }
+    std::shared_ptr<CollectorClient> client_;
+    std::unique_ptr<grpc::ClientContext> subscriber_context_;
+
+   public:
+    DataBrokerFeederImpl(std::shared_ptr<CollectorClient> client, DatapointConfiguration&& dp_config)
+        : client_(client)
+        , dp_config_(std::move(dp_config))
+        , feeder_active_(true) {}
 
     ~DataBrokerFeederImpl() { Shutdown(); }
 
@@ -112,13 +92,13 @@ public:
          * re-establishing a lost connection to the broker.
          */
         while (feeder_active_) {
-            LOG_INFO << "Connecting to data broker [" << broker_addr_ << "] ..." << std::endl;
+            LOG_INFO << "Connecting to data broker [" << client_->GetBrokerAddr() << "] ..." << std::endl;
             auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(5);
-            connected_ = channel_->WaitForConnected(deadline);
-            if (connected_) {
+            client_->WaitForConnected(deadline);
+            if (client_->Connected()) {
                 LOG_INFO << "connected to data broker." << std::endl;
             }
-            if (feeder_active_ && connected_) {
+            if (feeder_active_ && client_->Connected()) {
                 if (!registerDatapoints()) {
                     // don't attempt to feed values (too often) if registration status was an error
                     std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -127,11 +107,11 @@ public:
             }
 
             bool also_feed_initial_values = true;
-            while (feeder_active_ && connected_) {
+            while (feeder_active_ && client_->Connected()) {
                 feedStoredValues(also_feed_initial_values);
                 also_feed_initial_values = false;
 
-                if (feeder_active_ && connected_) {
+                if (feeder_active_ && client_->Connected()) {
                     std::unique_lock<std::mutex> lock(stored_values_mutex_);
                     if (stored_values_.empty()) {
                         feeder_thread_sync_.wait(lock);
@@ -151,6 +131,10 @@ public:
             }
             feeder_thread_sync_.notify_all();
             LOG_INFO << "Feeder stopped." << std::endl;
+        }
+
+        if (subscriber_context_) {
+            subscriber_context_->TryCancel();
         }
     }
 
@@ -209,9 +193,9 @@ private:
             request.mutable_list()->Add(std::move(reg_data));
         }
 
-        auto context = createClientContext();
+        auto context = client_->createClientContext();
         sdv::databroker::v1::RegisterDatapointsReply reply;
-        grpc::Status status = this->collector_proxy_->RegisterDatapoints(context.get(), request, &reply);
+        grpc::Status status = client_->RegisterDatapoints(context.get(), request, &reply);
         if (status.ok()) {
             LOG_INFO << "Datapoints registered." << std::endl;
             id_map_ = std::move(*reply.mutable_results());
@@ -263,9 +247,9 @@ private:
             }
         }
 
-        auto context = createClientContext();
+        auto context = client_->createClientContext();
         sdv::databroker::v1::UpdateDatapointsReply reply;
-        grpc::Status status = this->collector_proxy_->UpdateDatapoints(context.get(), request, &reply);
+        grpc::Status status = client_->UpdateDatapoints(context.get(), request, &reply);
         if (status.ok()) {
             return true;
         }
@@ -285,10 +269,10 @@ private:
      */
     void handleError(const grpc::Status& status, const std::string& caller) {
         LOG_ERROR << caller << " failed:"<< std::endl
-            << "    ErrorCode: " << status.error_code() << std::endl
-            << "    ErrorMsg:  '" << status.error_message() << "'" << std::endl
-            << "    ErrorDetl: '" << status.error_details() << "'" << std::endl
-            << "    grpcChannelState: " << channel_->GetState(false) << std::endl;
+                  << "    ErrorCode: " << status.error_code() << std::endl
+                  << "    ErrorMsg:  '" << status.error_message() << "'" << std::endl
+                  << "    ErrorDetl: '" << status.error_details() << "'" << std::endl
+                  << "    grpcChannelState: " << client_->GetState() << std::endl;
 
         switch (status.error_code()) {
         case GRPC_STATUS_INTERNAL:
@@ -302,39 +286,14 @@ private:
             LOG_ERROR << ">>> Maybe temporary error -> trying reconnection to broker" << std::endl;
             break;
         }
-        connected_ = false;
+        client_->SetDisconnected();
     }
+    };
 
-    /** Create the client context for a gRPC call and add possible gRPC metadata */
-    std::unique_ptr<grpc::ClientContext> createClientContext()
-    {
-        auto context = std::make_unique<grpc::ClientContext>();
-        for (const auto& metadata : grpc_metadata_) {
-            context->AddMetadata(metadata.first, metadata.second);
-        }
-        return context;
+    std::shared_ptr<DataBrokerFeeder> DataBrokerFeeder::createInstance(std::shared_ptr<CollectorClient> client,
+                                                                       DatapointConfiguration&& dpConfig) {
+        return std::make_shared<DataBrokerFeederImpl>(client, std::move(dpConfig));
     }
-
-    /** Change the port of the broker address passed to the c-tor to the port
-     *  set by a possibly set DAPR_GRPC_PORT environment variable. */
-    void changeToDaprPortIfSet(std::string& broker_addr)
-    {
-        std::string dapr_port = getEnvVar("DAPR_GRPC_PORT");
-        if (!dapr_port.empty()) {
-            std::string::size_type colon_pos = broker_addr.find_last_of(':');
-            broker_addr = broker_addr.substr(0, colon_pos+1) + dapr_port;
-            LOG_DEBUG << "broker_addr changed to: " << broker_addr << std::endl;
-        }
-    }
-};
-
-
-std::shared_ptr<DataBrokerFeeder> DataBrokerFeeder::createInstance(
-    const std::string& broker_addr,
-    DatapointConfiguration&& dpConfig)
-{
-    return std::make_shared<DataBrokerFeederImpl>(broker_addr, std::move(dpConfig));
-}
 
 }  // namespace broker_feeder
 }  // namespace sdv

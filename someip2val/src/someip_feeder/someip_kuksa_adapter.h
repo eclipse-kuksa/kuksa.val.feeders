@@ -66,6 +66,7 @@ private:
     std::atomic<bool> feeder_active_;
 
     std::string databroker_addr_;
+    std::shared_ptr<sdv::broker_feeder::CollectorClient> collector_client_;
     std::shared_ptr<sdv::broker_feeder::DataBrokerFeeder> databroker_feeder_;
     std::shared_ptr<std::thread> feeder_thread_;
 

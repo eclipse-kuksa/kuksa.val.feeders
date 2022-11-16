@@ -151,7 +151,9 @@ bool SomeipFeederAdapter::InitDataBrokerFeeder(const std::string &databroker_add
         }
     };
 
-    databroker_feeder_ = sdv::broker_feeder::DataBrokerFeeder::createInstance(databroker_addr, std::move(metadata));
+    LOG_INFO << "Connecting to " << databroker_addr << std::endl;
+    collector_client_ = sdv::broker_feeder::CollectorClient::createInstance(databroker_addr);
+    databroker_feeder_ = sdv::broker_feeder::DataBrokerFeeder::createInstance(collector_client_, std::move(metadata));
     return true;
 }
 
@@ -268,6 +270,15 @@ void SomeipFeederAdapter::FeedDummyData() {
             LOG_INFO << "Feed Value " << pos << " to '" << vss << "'" << std::endl;
             sdv::databroker::v1::Datapoint datapoint;
             datapoint.set_float_value(pos);
+            if (!datapoint.has_timestamp()) {
+                auto ts = datapoint.mutable_timestamp();
+                struct timespec tv;
+                int rc = clock_gettime(CLOCK_REALTIME, &tv);
+                if (rc == 0) {
+                    ts->set_seconds(tv.tv_sec);
+                    ts->set_nanos(tv.tv_nsec);
+                }
+            }
             databroker_feeder_->FeedValue(vss, datapoint);
         }
         { // feed TargetPosition

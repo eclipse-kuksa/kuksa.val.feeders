@@ -148,9 +148,11 @@ bool SomeIPClient::init() {
         << "] ver." << std::dec << (int)service_major_
         << ", event_group:0x"
         << std::hex << std::setfill('0') << std::setw(4) << event_group_
+        << ", event:0x"
+        << std::hex << std::setfill('0') << std::setw(4) << event_
         << std::endl;
 
-    app_->subscribe(service_, instance_, event_group_, service_major_);
+    app_->subscribe(service_, instance_, event_group_, service_major_, event_);
 
     return true;
 }
@@ -192,7 +194,7 @@ void SomeIPClient::start() {
 void SomeIPClient::stop() {
     LOG_INFO << "Stopping..." << std::endl;
     app_->clear_all_handler();
-    app_->unsubscribe(service_, instance_, event_group_);
+    app_->unsubscribe(service_, instance_, event_group_, event_);
     app_->release_event(service_, instance_, event_);
     app_->release_service(service_, instance_);
     if (!initialized_) {
@@ -239,12 +241,14 @@ void SomeIPClient::on_message(const std::shared_ptr<vsomeip::message> &_response
         its_message << "Received a "
                 << message_type_to_string(_response->get_message_type())
                 << " for Event ["
-                << std::setw(4)    << std::setfill('0') << std::hex
+                << std::setw(4) << std::setfill('0') << std::hex
                 << _response->get_service() << "."
                 << std::setw(4) << std::setfill('0') << std::hex
                 << _response->get_instance() << "."
                 << std::setw(4) << std::setfill('0') << std::hex
-                << _response->get_method() << "] to Client/Session ["
+                << _response->get_method() << "] v"
+                << _response->get_interface_version()
+                << " to Client/Session ["
                 << std::setw(4) << std::setfill('0') << std::hex
                 << _response->get_client() << "/"
                 << std::setw(4) << std::setfill('0') << std::hex

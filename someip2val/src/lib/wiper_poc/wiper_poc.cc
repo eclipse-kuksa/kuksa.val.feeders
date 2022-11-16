@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include <stdint.h>
+#include <string.h>
 #include "wiper_poc.h"
 
 namespace sdv {
@@ -50,7 +51,7 @@ bool deserialize_event(const uint8_t *payload, size_t payload_size, t_Event& eve
     uint8_t tmp[4];
 
     memset(&event, 0, sizeof(event));
-    if (payload_size < 20) {
+    if (payload_size < WIPER_EVENT_PAYLOAD_SIZE) {
         std::cerr << __func__ << " Payload size " << payload_size << " is too small!" << std::endl;
         return false;
     }
@@ -81,6 +82,58 @@ bool deserialize_event(const uint8_t *payload, size_t payload_size, t_Event& eve
     event.data.isUnderVoltage       = payload[19];
     return true;
 }
+bool serialize_wiper_event(const t_Event& event, uint8_t *payload, size_t payload_size) {
+    if (payload_size < WIPER_EVENT_PAYLOAD_SIZE) {
+        std::cerr << __func__ << " Payload size " << payload_size << " is too small!" << std::endl;
+        return false;
+    }
+    // serialize t_Event as someip payload
+    memset(payload, 0, payload_size);
+    payload[0] = event.sequenceCounter;
+    sdv::someip::wiper::float_to_bytes(event.data.ActualPosition, &payload[1]);
+    sdv::someip::wiper::float_to_bytes(event.data.DriveCurrent, &payload[5]);
+    payload[9]  = event.data.TempGear;
+    payload[10] = event.data.isWiping;
+    payload[11] = event.data.isEndingWipeCycle;
+    payload[12] = event.data.isWiperError;
+    payload[13] = event.data.isPositionReached;
+    payload[14] = event.data.isBlocked;
+    payload[15] = event.data.isOverheated;
+    payload[16] = event.data.ECUTemp;
+    payload[17] = event.data.LINError;
+    payload[18] = event.data.isOverVoltage;
+    payload[19] = event.data.isUnderVoltage;
+    return true;
+}
+
+#if 0
+bool serialize_wiper_event(const t_Event& event, std::vector<uint8_t> &serialized) {
+    // serialize t_Event as someip payload
+    uint8_t tmp[4];
+    serialized.push_back(event.sequenceCounter);
+
+    sdv::someip::wiper::float_to_bytes(event.data.ActualPosition, tmp);
+    for (int i=0; i<sizeof(tmp); i++) {
+        serialized.push_back(tmp[i]);
+    }
+    sdv::someip::wiper::float_to_bytes(event.data.DriveCurrent, tmp);
+    for (int i=0; i<sizeof(tmp); i++) {
+        serialized.push_back(tmp[i]);
+    }
+
+    its_data[9]  = event.data.TempGear;
+    its_data[10] = event.data.isWiping;
+    its_data[11] = event.data.isEndingWipeCycle;
+    its_data[12] = event.data.isWiperError;
+    its_data[13] = event.data.isPositionReached;
+    its_data[14] = event.data.isBlocked;
+    its_data[15] = event.data.isOverheated;
+    its_data[16] = event.data.ECUTemp;
+    its_data[17] = event.data.LINError;
+    its_data[18] = event.data.isOverVoltage;
+    its_data[19] = event.data.isUnderVoltage;
+}
+#endif
 
 std::string bytes_to_string(const uint8_t *payload, size_t payload_size) {
     std::stringstream ss;
@@ -146,6 +199,80 @@ void print_status(const std::string &prefix, const t_Event &event) {
                 event.sequenceCounter);
 }
 
+bool serialize_vss_request(uint8_t *payload, size_t payload_size, const t_WiperRequest &reqest) {
+    uint8_t tmp[4];
+
+    // Mode:
+    // datatype: uint8_t
+    //   allowed: [STOP_HOLD, WIPE, PLANT_MODE, EMERGENCY_STOP]
+
+    // Frequency:
+    // datatype: uint8
+    // description: Wiping frequency/speed, measured in cycles per minute
+    // comment:     Examples - 0 = Wipers stopped, 80 = Wipers doing 80 cycles per minute (in WIPE mode).
+
+    // TargetPosition:
+    // datatype: float
+    // unit: degrees
+
+    if (payload_size < 6) {
+        std::cerr << __func__ << " Payload size " << payload_size << " is too small!" << std::endl;
+        return false;
+    }
+    int index = 0;
+    payload[index++] = reqest.Frequency;
+    float_to_bytes(reqest.TargetPosition, tmp);
+    for (int i = 0; i < 4; i++) {
+        payload[index++] = tmp[i];
+    }
+    payload[index++] = reqest.Mode;
+    return true;
+}
+
+
+bool deserialize_vss_request(const uint8_t *payload, size_t payload_size, t_WiperRequest &request) {
+    uint8_t tmp[4];
+
+    memset(&request, 0, sizeof(request));
+    if (payload_size < 6) {
+        std::cerr << __func__ << " Payload size " << payload_size << " is too small!" << std::endl;
+        return false;
+    }
+    int index = 0;
+    request.Frequency = (uint8_t)payload[index++];
+    for (int i = 0; i < 4; i++) {
+        tmp[i] = payload[index++];
+    }
+    bytes_to_float(tmp, &request.TargetPosition);
+    request.Mode = (e_WiperMode)payload[index++];
+
+    return true;
+}
+
+std::string wiper_mode_to_string(e_WiperMode mode) {
+    switch (mode) {
+        case e_WiperMode::EMERGENCY_STOP:
+            return "EMERGENCY_STOP";
+        case e_WiperMode::PLANT_MODE:
+            return "PLANT_MODE";
+        case e_WiperMode::STOP_HOLD:
+            return "STOP_HOLD";
+        case e_WiperMode::WIPE:
+            return "WIPE";
+        default:
+            return "Invalid!";
+    }
+}
+
+std::string vss_request_to_string(const t_WiperRequest &request) {
+    std::stringstream ss;
+    ss << "WiperReq: { mode:"
+        << wiper_mode_to_string(request.Mode)
+        << ", freq: " << std::dec << (uint) request.Mode
+        << ", targetPos:" << request.TargetPosition
+        << " }";
+    return ss.str();
+}
 
 }  // namespace wiper
 }  // namespace someip

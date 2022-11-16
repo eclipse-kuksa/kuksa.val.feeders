@@ -28,6 +28,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "collector_client.h"
 #include "sdv/databroker/v1/types.pb.h"
 namespace sdv {
 namespace broker_feeder {
@@ -52,8 +53,7 @@ public:
      * @param broker_addr address of the broker to connect to; format "<ip-address>:<port>"
      * @param dpConfig metadata and initial values of the data points to register
      */
-    static std::shared_ptr<DataBrokerFeeder> createInstance(
-        const std::string& broker_addr,
+ static std::shared_ptr<DataBrokerFeeder> createInstance(std::shared_ptr<CollectorClient> client,
         DatapointConfiguration&& dpConfig);
 
     virtual ~DataBrokerFeeder() = default;
@@ -75,9 +75,7 @@ public:
      * @param name Name (path) of the data point to be fed (update).
      * @param value The value to be fed
      */
-    virtual void FeedValue(
-        const std::string& name,
-        const sdv::databroker::v1::Datapoint& value) = 0;
+ virtual void FeedValue(const std::string& name, const sdv::databroker::v1::Datapoint& value) = 0;
 
     /**
      * Try to feed a batch of data point values to the broker.
