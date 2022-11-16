@@ -55,7 +55,8 @@ FetchContent_Declare(
   PATCH_COMMAND     git apply --ignore-whitespace
                         "${CMAKE_SOURCE_DIR}/patches/000-cmake-reduce-gcc-warnings.patch"
                         "${CMAKE_SOURCE_DIR}/patches/001-vsomeip-logger-fixes.patch"
-                        # "${CMAKE_SOURCE_DIR}/patches/002-vsomeip-application-debugs.patch"
+                        "${CMAKE_SOURCE_DIR}/patches/002-vsomeip-default-major-change.patch"
+                        # "${CMAKE_SOURCE_DIR}/patches/003-vsomeip-application-debugs.patch"
   GIT_SHALLOW       ON
   GIT_PROGRESS      TRUE
 )

@@ -33,7 +33,7 @@ BUILD_DIR="$2"
 
 set -e
 cmake -E make_directory "$BUILD_DIR"
-conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
+conan install --update -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 
 cd "$BUILD_DIR" || exit 1
 

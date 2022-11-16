@@ -1,0 +1,14 @@
+diff --git a/interface/vsomeip/constants.hpp b/interface/vsomeip/constants.hpp
+index 3a8201a..2406635 100644
+--- a/interface/vsomeip/constants.hpp
++++ b/interface/vsomeip/constants.hpp
+@@ -13,7 +13,8 @@
+ 
+ namespace vsomeip_v3 {
+ 
+-const major_version_t DEFAULT_MAJOR = 0x00;
++// const major_version_t DEFAULT_MAJOR = 0x00;
++const major_version_t DEFAULT_MAJOR = 0x01; // works better with autosar
+ const minor_version_t DEFAULT_MINOR = 0x00000000;
+ const ttl_t DEFAULT_TTL = 0xFFFFFF; // "until next reboot"
+ 

@@ -168,6 +168,9 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (vsomeip::DEFAULT_MAJOR != 0) {
+        std::cout << "# Warning: compiled with vsomeip::DEFAULT_MAJOR=" << std::dec << (int)vsomeip::DEFAULT_MAJOR << std::endl;
+    }
     // Initialize Databroker Feeder
     adapter.InitDataBrokerFeeder(target_str);
 
