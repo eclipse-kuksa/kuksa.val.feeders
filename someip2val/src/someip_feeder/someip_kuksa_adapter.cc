@@ -64,6 +64,9 @@ SomeipFeederAdapter::SomeipFeederAdapter():
     databroker_addr_(),
     databroker_feeder_(nullptr),
     feeder_thread_(nullptr),
+    actuator_target_subscriber_thread_(nullptr),
+    actuator_target_subscriber_running_(false),
+    actuator_target_subscriber_context_(nullptr),
     someip_active_(false),
     someip_thread_(nullptr),
     someip_client_(nullptr),
@@ -199,6 +202,72 @@ bool SomeipFeederAdapter::InitSomeipClient(sdv::someip::SomeIPConfig _config) {
     return someip_ok;
 }
 
+void SomeipFeederAdapter::RunActuatorTargetSubscriber() {
+    LOG_INFO << "Starting actuator target subscriber..." << std::endl;
+
+    actuator_target_subscriber_running_ = true;
+    while (actuator_target_subscriber_running_) {
+        auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(2);
+        if (!collector_client_->WaitForConnected(deadline)) {
+            LOG_INFO << "Not connected" << std::endl;
+            continue;
+        }
+
+        LOG_INFO << "Connected" << std::endl;
+
+        sdv::databroker::v1::SubscribeActuatorTargetRequest request;
+        request.add_paths(WIPER_MODE);
+        request.add_paths(WIPER_FREQUENCY);
+        request.add_paths(WIPER_TARGET_POSITION);
+
+        sdv::databroker::v1::SubscribeActuatorTargetReply reply;
+        actuator_target_subscriber_context_ = collector_client_->createClientContext();
+        std::unique_ptr<::grpc::ClientReader<sdv::databroker::v1::SubscribeActuatorTargetReply>> reader(
+            collector_client_->SubscribeActuatorTargets(actuator_target_subscriber_context_.get(), request));
+        while (reader->Read(&reply)) {
+            auto actuator_targets = reply.actuator_targets();
+            if (actuator_targets.contains(WIPER_MODE) &&
+                actuator_targets.contains(WIPER_FREQUENCY) &&
+                actuator_targets.contains(WIPER_TARGET_POSITION)) {
+
+                auto wiper_mode = actuator_targets.at(WIPER_MODE);
+                if (wiper_mode.value_case() != sdv::databroker::v1::Datapoint::ValueCase::kStringValue) {
+                    LOG_INFO << "wrong value type for " << WIPER_MODE << std::endl;
+                    continue;
+                }
+                auto wiper_freq = actuator_targets.at(WIPER_FREQUENCY);
+                if (wiper_freq.value_case() != sdv::databroker::v1::Datapoint::ValueCase::kUint32Value) {
+                    LOG_INFO << "wrong value type for " << WIPER_FREQUENCY << std::endl;
+                    continue;
+                }
+
+                auto wiper_target_position = actuator_targets.at(WIPER_TARGET_POSITION);
+                if (wiper_target_position.value_case() != sdv::databroker::v1::Datapoint::ValueCase::kFloatValue) {
+                    LOG_INFO << "wrong value type for " << WIPER_TARGET_POSITION << std::endl;
+                    continue;
+                }
+
+                auto wiper_mode_value = wiper_mode.string_value();
+                auto wiper_freq_value = wiper_freq.uint32_value();
+                auto wiper_target_position_value = wiper_target_position.float_value();
+                LOG_INFO << "wiper_mode_value: " << wiper_mode_value << std::endl;
+                LOG_INFO << "wiper_freq_value: " << wiper_freq_value << std::endl;
+                LOG_INFO << "wiper_target_position: " << wiper_target_position_value << std::endl;
+
+                // Send SOME/IP request
+                if (someip_client_) {
+                    // someip_client_->SendRequest(wiper_mode_value, wiper_freq_value, wiper_target_position_value);
+                }
+            } else {
+                LOG_INFO << "Not all actuator targets included in notification" << std::endl;
+            }
+        }
+        actuator_target_subscriber_context_ = nullptr;
+        LOG_INFO << "Disconnected" << std::endl;
+    }
+    LOG_INFO << "Exiting" << std::endl;
+}
+
 void SomeipFeederAdapter::Start() {
     LOG_INFO << "[SomeipFeederAdapter::" << __func__ << "] Starting adapter..." << std::endl;
     if (databroker_feeder_) {
@@ -217,6 +286,12 @@ void SomeipFeederAdapter::Start() {
             LOG_ERROR << "Failed setting someip thread name:" << rc << std::endl;
         }
     }
+
+    // start target actuator subscription
+    actuator_target_subscriber_thread_ = std::make_shared<std::thread> ([this]() {
+        RunActuatorTargetSubscriber();
+    });
+
     feeder_active_ = true;
 }
 
@@ -229,6 +304,14 @@ void SomeipFeederAdapter::Shutdown() {
     }
     shutdown_requested_ = true;
     feeder_active_ = false;
+
+    if (actuator_target_subscriber_thread_) {
+        actuator_target_subscriber_running_ = false;
+        if (actuator_target_subscriber_context_) {
+            actuator_target_subscriber_context_->TryCancel();
+        }
+    }
+
     if (feeder_thread_ && databroker_feeder_) {
         LOG_INFO << "Stopping databroker feeder..." << std::endl;
         databroker_feeder_->Shutdown();
@@ -252,6 +335,10 @@ void SomeipFeederAdapter::Shutdown() {
         LOG_TRACE << "Joining datafeeder thread..." << std::endl;
         feeder_thread_->join();
         LOG_TRACE << "datafeeder thread joined." << std::endl;
+    }
+
+    if (actuator_target_subscriber_thread_ && actuator_target_subscriber_thread_->joinable()) {
+        actuator_target_subscriber_thread_->join();
     }
     LOG_TRACE << "done." << std::endl;
 }
