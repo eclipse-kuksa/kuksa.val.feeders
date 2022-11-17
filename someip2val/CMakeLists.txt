@@ -15,6 +15,8 @@ cmake_minimum_required(VERSION 3.11)
 # Project
 project(SomeIp2Val CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "If enabled, generates a compile_commands.json file")
+
 # use conan as dependency management
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 

@@ -63,13 +63,23 @@ class SomeipFeederAdapter {
             size_t payload_length);
 
 private:
+    void RunActuatorTargetSubscriber();
+
     std::atomic<bool> feeder_active_;
 
     std::string databroker_addr_;
     std::shared_ptr<sdv::broker_feeder::CollectorClient> collector_client_;
+
+    // Feeder
     std::shared_ptr<sdv::broker_feeder::DataBrokerFeeder> databroker_feeder_;
     std::shared_ptr<std::thread> feeder_thread_;
 
+    // Actuator target subscriber
+    std::shared_ptr<std::thread> actuator_target_subscriber_thread_;
+    std::atomic<bool> actuator_target_subscriber_running_;
+    std::unique_ptr<grpc::ClientContext> actuator_target_subscriber_context_;
+
+    // SOME/IP client
     bool someip_use_tcp_;
     std::shared_ptr<sdv::someip::SomeIPClient> someip_client_;
     std::shared_ptr<std::thread> someip_thread_;
