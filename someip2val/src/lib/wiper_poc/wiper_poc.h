@@ -42,7 +42,8 @@ namespace sdv {
 namespace someip {
 namespace wiper {
 
-#define WIPER_EVENT_PAYLOAD_SIZE 20
+#define WIPER_EVENT_PAYLOAD_SIZE    20
+#define WIPER_SET_PAYLOAD_SIZE      6
 
 typedef struct
 {
@@ -84,9 +85,9 @@ typedef enum
  */
 typedef struct
 {
-    e_WiperMode Mode;
     uint8_t     Frequency;
     _Float32    TargetPosition;
+    e_WiperMode Mode;
 } t_WiperRequest;
 
 void float_to_bytes(float val, uint8_t* data);
@@ -102,12 +103,15 @@ bool deserialize_event(const uint8_t *payload, size_t payload_size, t_Event& eve
 bool serialize_wiper_event(const t_Event& event, uint8_t *payload, size_t payload_size);
 
 void print_status(const std::string &prefix, const t_Event &event);
+
+
 /*************************************/
 /**  Wiper Request service helpers  **/
 /*************************************/
 
 bool serialize_vss_request(uint8_t *payload, size_t payload_size, const t_WiperRequest &request);
 bool deserialize_vss_request(const uint8_t *payload, size_t payload_size, t_WiperRequest &request);
+bool wiper_mode_parse(const std::string &str, e_WiperMode &mode);
 std::string wiper_mode_to_string(e_WiperMode mode);
 std::string vss_request_to_string(const t_WiperRequest &request);
 

@@ -77,8 +77,13 @@ add_subdirectory(src)
 configure_file(./bin/setup-someip2val.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
 configure_file(./bin/setup-someip2val-proxy.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
 configure_file(./bin/setup-wiper-service.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+configure_file(./bin/setup-wiper-client.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+configure_file(./bin/setup-wiper-client-proxy.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
 configure_file(./config/someip_wiper_service.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+configure_file(./config/someip_wiper_client.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
 configure_file(./config/someip_wiper_client-proxy.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+configure_file(./config/someip_feeder.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+configure_file(./config/someip_feeder-proxy.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
 
 ###
 ### install scripts and config

@@ -28,7 +28,11 @@
 #include "wiper_sim.h"
 
 
-static int debug = ::getenv("DEBUG") ? ::atoi(::getenv("DEBUG")) : 0;
+int debug = ::getenv("DEBUG") ? ::atoi(::getenv("DEBUG")) : 0;
+
+static int sim_auto = ::getenv("SIM_AUTO") ? ::atoi(::getenv("SIM_AUTO")) : 0;
+
+using namespace sdv::someip::wiper;
 
 class wiper_service {
 
@@ -42,7 +46,7 @@ public:
             blocked_(false),
             running_(true),
             is_offered_(false),
-            wiper_sim_(cycle_),
+            wiper_sim_(cycle_, sim_auto),
             offer_thread_(std::bind(&wiper_service::run, this)),
             notify_thread_(std::bind(&wiper_service::notify_th, this))
     {
@@ -114,9 +118,9 @@ public:
 
     void on_vss_message_cb(const std::shared_ptr<vsomeip::message> &_request) {
         std::stringstream its_message;
-        sdv::someip::wiper::t_Event event;
+        t_Event event;
 
-        its_message << "### [VSS] Received a notification for Event ["
+        its_message << "### [VSS] Received a Request for ["
                 << std::setw(4)    << std::setfill('0') << std::hex
                 << _request->get_service() << "."
                 << std::setw(4) << std::setfill('0') << std::hex
@@ -128,8 +132,7 @@ public:
                 << std::setw(4) << std::setfill('0') << std::hex
                 << _request->get_session()
                 << "] = ";
-        std::shared_ptr<vsomeip::payload> its_payload =
-                _request->get_payload();
+        std::shared_ptr<vsomeip::payload> its_payload = _request->get_payload();
         its_message << "(" << std::dec << its_payload->get_length() << ")";
         if (debug > 0) {
             its_message << " [";
@@ -140,29 +143,27 @@ public:
             }
             its_message << "]";
         }
+
+        std::cout << std::endl;
         std::cout << its_message.str() << std::endl;
+        std::cout << std::endl;
 
         // TODO create and send response
-        std::shared_ptr<vsomeip::message> its_response
-            = vsomeip::runtime::get()->create_response(_request);
-
-        std::shared_ptr<vsomeip::payload> resp_payload
-            = vsomeip::runtime::get()->create_payload();
+        std::shared_ptr<vsomeip::message> its_response = vsomeip::runtime::get()->create_response(_request);
+        std::shared_ptr<vsomeip::payload> resp_payload = vsomeip::runtime::get()->create_payload();
 
         uint8_t result = 0x01; // or 0x01 for error
 
-        sdv::someip::wiper::t_WiperRequest wiper_request;
-        if (sdv::someip::wiper::deserialize_vss_request(
-                    its_payload->get_data(),
-                    its_payload->get_length(),
-                    wiper_request)) {
-
-            std::cout << "### [VSS] recaived: "
-                    << sdv::someip::wiper::vss_request_to_string(wiper_request)
+        t_WiperRequest wiper_request;
+        if (deserialize_vss_request(its_payload->get_data(), its_payload->get_length(), wiper_request)) {
+            std::cout << "### [VSS] received: "
+                    << vss_request_to_string(wiper_request)
                     << std::endl;
-            result = 0; // ok
-
             // TODO: start/stop wiping, etc.
+            wiper_sim_.model_set(wiper_request);
+            result = 0x00; // ok
+        } else {
+            std::cerr << "### [VSS] Failed to deserialize payload!" << std::endl;
         }
 
         std::vector<vsomeip::byte_t> its_payload_data;
@@ -171,7 +172,9 @@ public:
         resp_payload->set_data(its_payload_data);
         its_response->set_payload(resp_payload);
 
+        if (debug > 0) std::cout << "### [VSS] Sending VSS Response..." << std::endl;
         app_->send(its_response);
+        if (debug > 1) std::cout << "### [VSS] done." << std::endl;
     }
 
     void on_availability_cb(vsomeip::service_t _service, vsomeip::instance_t _instance, bool _is_available) {
@@ -262,33 +265,30 @@ public:
             condition_.wait(its_lock);
 
         bool is_offer(true);
-        int counter = 0;
+
+        // predefined vss positions
+        int vss_index = 0;
+        t_WiperRequest vss_reqests[] = {
+            { 40, 80.0f, e_WiperMode::WIPE },
+            { 50, 20.0f, e_WiperMode::WIPE },
+            { 30, 10.0f, e_WiperMode::WIPE },
+            { 30,  2.0f, e_WiperMode::WIPE },
+            { 70,  2.0f, e_WiperMode::EMERGENCY_STOP }
+        };
+
         while (running_) {
             if (is_offer)
                 offer();
             else
                 stop_offer();
 
-            sdv::someip::wiper::t_WiperRequest vss_set;
-            switch ((counter++) % 4) {
-                case 0:
-                    wiper_sim_.model_set({
-                            sdv::someip::wiper::e_WiperMode::WIPE, 20, 80} );
-                    break;
-                case 1:
-                    wiper_sim_.model_set({
-                            sdv::someip::wiper::e_WiperMode::EMERGENCY_STOP, 80, 0} );
-                    break;
-                case 2:
-                    wiper_sim_.model_set({
-                            sdv::someip::wiper::e_WiperMode::WIPE, 20, 130} );
-                    break;
-                case 3:
-                    wiper_sim_.model_set({
-                            sdv::someip::wiper::e_WiperMode::WIPE, 75, 40} );
-                    break;
+            if (sim_auto) {
+                std::cout << "# SIM: Setting VSS [" << vss_index << "] ..." << std::endl;
+                wiper_sim_.model_set(vss_reqests[vss_index++]);
+                if (vss_index > 5) {
+                    vss_index = 0;
+                }
             }
-
             for (int i = 0; i < 10 && running_; i++) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             }
@@ -297,64 +297,6 @@ public:
         }
     }
 
-#if 0
-    void wiper_model_init(sdv::someip::wiper::t_Event &event) {
-        event.sequenceCounter = 0;
-        event.data.ActualPosition = 90;
-        event.data.DriveCurrent = 10;
-        event.data.TempGear = 100;
-        event.data.isBlocked = false;
-        event.data.isEndingWipeCycle = false;
-        event.data.isOverheated = false;
-        event.data.isPositionReached = false;
-        event.data.isWiperError = false;
-        event.data.isWiping = true;
-        event.data.ECUTemp = 75;
-        event.data.LINError = 255;
-        event.data.isUnderVoltage = false;
-        event.data.isOverVoltage = false;
-    }
-
-    void wiper_model_step(sdv::someip::wiper::t_Event &event) {
-
-        const float default_pos_step = 3.13f;
-        const float default_current = 10.0f;
-        float pos_step = default_pos_step;
-
-        model_counter++;
-        event.sequenceCounter = (uint8_t)(model_counter & 0xFF);
-
-        // toggle isOverheated ~9s
-        if ((cycle_ * model_counter) % 9000 == 0) {
-            event.data.isOverheated = !event.data.isOverheated;
-            std::cout << std::endl << "*** wiper "
-                << (event.data.isOverheated ? "Overheated." : "not Overheated") << std::endl << std::endl;
-        }
-
-        // toggle isWiping ~5s
-        if ((cycle_ * model_counter) % 5000 == 0) {
-            event.data.isWiping = !event.data.isWiping;
-            std::cout << std::endl << "*** wiping "
-                << (event.data.isWiping ? "started." : "stopped.") << std::endl << std::endl;
-        }
-
-        // simulate wiper movement
-        if (event.data.isWiping) {
-            if (event.data.ActualPosition >= 150.0f) {
-                pos_step = -default_pos_step;
-            } else
-            if (event.data.ActualPosition < default_pos_step) {
-                pos_step = default_pos_step;
-            }
-            event.data.ActualPosition += pos_step + speed_rnd(gen);
-
-            event.data.DriveCurrent = default_current + current_rnd(gen);
-        } else {
-            event.data.DriveCurrent = 0.0f;
-        }
-    }
-#endif // #0
-
     void notify_th() {
         std::shared_ptr<vsomeip::message> its_message
             = vsomeip::runtime::get()->create_request(use_tcp_);
@@ -362,9 +304,9 @@ public:
         its_message->set_service(WIPER_SERVICE_ID);
         its_message->set_instance(WIPER_INSTANCE_ID);
         its_message->set_method(WIPER_EVENT_ID);
-        its_message->set_interface_version(WIPER_SERVICE_MAJOR);
+        // its_message->set_interface_version(WIPER_SERVICE_MAJOR);
 
-        sdv::someip::wiper::t_Event event;
+        t_Event event;
         uint8_t its_data[WIPER_EVENT_PAYLOAD_SIZE];
         size_t its_size = sizeof(its_data);
 
@@ -391,7 +333,7 @@ public:
                     }
                     if (debug > 2) {
                         std::cout << "### Notify payload: "
-                                << sdv::someip::wiper::bytes_to_string(its_data, its_size)
+                                << bytes_to_string(its_data, its_size)
                                 << "]" << std::endl;
                     }
                     app_->notify(WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, payload_);
@@ -412,7 +354,7 @@ public:
         its_message->set_method(WIPER_EVENT_ID);
         its_message->set_interface_version(WIPER_SERVICE_MAJOR);
 
-        sdv::someip::wiper::t_Event event;
+        t_Event event;
         uint32_t its_size = sizeof(event);
         uint8_t its_data[its_size];
 
@@ -491,8 +433,8 @@ public:
                 }
                 // serialize t_Event as someip payload
                 its_data[0] = event.sequenceCounter;
-                sdv::someip::wiper::float_to_bytes(event.data.ActualPosition, &its_data[1]);
-                sdv::someip::wiper::float_to_bytes(event.data.DriveCurrent, &its_data[5]);
+                float_to_bytes(event.data.ActualPosition, &its_data[1]);
+                float_to_bytes(event.data.DriveCurrent, &its_data[5]);
                 its_data[9]  = event.data.TempGear;
                 its_data[10] = event.data.isWiping;
                 its_data[11] = event.data.isEndingWipeCycle;
@@ -514,7 +456,7 @@ public:
                     }
                     if (debug > 2) {
                         std::cout << "### Notify payload: "
-                                << sdv::someip::wiper::bytes_to_string(its_data, its_size)
+                                << bytes_to_string(its_data, its_size)
                                 << "]" << std::endl;
                     }
                     app_->notify(WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, payload_);
@@ -548,8 +490,8 @@ private:
     std::thread notify_thread_;
 
     // model simulator
-    sdv::someip::wiper::t_Event model_event;
-    sdv::someip::wiper::wiper_simulator wiper_sim_;
+    t_Event model_event;
+    wiper_simulator wiper_sim_;
 };
 
 // #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
@@ -569,6 +511,7 @@ int main(int argc, char **argv) {
     std::string tcp_enable("--tcp");
     std::string udp_enable("--udp");
     std::string cycle_arg("--cycle");
+    std::string sim_arg("--sim");
 
     // sanity checks for VSOMEIP environment
     const char* app_name = ::getenv("VSOMEIP_APPLICATION_NAME");
@@ -590,18 +533,23 @@ int main(int argc, char **argv) {
         if (tcp_enable == argv[i]) {
             use_tcp = true;
             break;
-        }
+        } else
         if (udp_enable == argv[i]) {
             use_tcp = false;
             break;
         }
-
+        else
         if (cycle_arg == argv[i] && i + 1 < argc) {
             i++;
             std::stringstream converter;
             converter << argv[i];
             converter >> cycle;
+        } else
+        if (sim_arg == argv[i]) {
+            sim_auto = 1; // override envrionment
+            break;
         }
+
     }
 
     wiper_service its_sample(use_tcp, cycle);

@@ -1,41 +1,46 @@
 {
-    "unicast": "127.0.0.1",
-    "logging" :
-    {
-        "level" : "debug",
-        "console" : "true",
-        "file" : { "enable" : "false", "path" : "/var/log/vsomeip.log" },
-        "dlt" : "false",
-        "version": { "enable": "false" },
-        "status_log_interval": "30",
-	"statistics": {
-		"interval": "60",
-		"min-frequency": "5",
-		"max-messages": "10"
-	}
+  "unicast": "127.0.0.1",
+  "logging": {
+    "level": "debug",
+    "console": "true",
+    "file": {
+      "enable": "false",
+      "path": "/var/log/vsomeip.log"
     },
-    "applications" :
-    [
-        {
-            "name" : "wiper_data",
-            "id" : "0x1278"
-        }
-    ],
-    "services" :
-    [
-        {
-            "service" : "0x60d0",
-            "instance" : "0001",
-            "__reliable" : { "port" : "30509", "enable-magic-cookies" : "false" },
-            "unreliable" : "31000"
-        }
-    ],
-    "routing" : "wiper_data",
-    "service-discovery" :
-    {
-        "enable" : "true",
-        "multicast" : "239.0.0.1",
-        "port" : "30490",
-        "protocol" : "udp"
+    "dlt": "false",
+    "version": {
+      "enable": "false"
+    },
+    "__status_log_interval": "30",
+    "__statistics": {
+      "interval": "60",
+      "min-frequency": "5",
+      "max-messages": "10"
     }
+  },
+  "applications": [
+    {
+      "name": "wiper_service",
+      "id": "0x1278"
+    }
+  ],
+  "services": [
+    {
+      "service": "0x60d0",
+      "instance": "0001",
+      "unreliable": "31000"
+    },
+    {
+      "service": "0x6123",
+      "instance": "0x000b",
+      "unreliable": "31234"
+    }
+  ],
+  "routing": "wiper_service",
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "239.0.0.1",
+    "port": "30490",
+    "protocol": "udp"
+  }
 }

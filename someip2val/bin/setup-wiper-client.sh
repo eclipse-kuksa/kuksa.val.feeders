@@ -15,36 +15,18 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/config/someip_feeder-proxy.json" ]; then
-    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/someip_feeder-proxy.json"
+export VSOMEIP_APPLICATION_NAME="wiper_client"
+
+CFG="someip_wiper_client.json"
+if [ -f "$SCRIPT_DIR/config/$CFG" ]; then
+    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/$CFG"
 else
     GIT_ROOT=$(git rev-parse --show-toplevel)
-    if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/someip2val/config/someip_feeder-proxy.json" ]; then
-        VSOMEIP_CONFIGURATION="$GIT_ROOT/someip2val/config/someip_feeder-proxy.json"
+    if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/someip2val/config/$CFG" ]; then
+        VSOMEIP_CONFIGURATION="$GIT_ROOT/someip2val/config/$CFG"
     fi
 fi
 export VSOMEIP_CONFIGURATION
-
-export VSOMEIP_APPLICATION_NAME="someip_feeder"
-
-export SOMEIP_CLI_SERVICE="0x60D0"
-export SOMEIP_CLI_INSTANCE="0x0001"
-export SOMEIP_CLI_EVENTGROUP="0x0064"
-export SOMEIP_CLI_EVENT="0x8001"
-export SOMEIP_CLI_MAJOR=1
-export SOMEIP_CLI_MINOR=0
-
-# request/response service
-export SOMEIP_CLI_REQ=1
-export SOMEIP_CLI_REQ_SERVICE="0x6123"
-export SOMEIP_CLI_REQ_INSTANCE="0x000b"
-export SOMEIP_CLI_REQ_METHOD="0x0007"
-export SOMEIP_CLI_REQ_MAJOR=1
-export SOMEIP_CLI_REQ_MINOR=0
-
-# default debug levels
-[ -z "$DBF_DEBUG" ] && export DBF_DEBUG=1 ### INFO
-[ -z "$SOMEIP_CLI_DEBUG" ] && export SOMEIP_CLI_DEBUG=1 ### INFO
 
 echo
 
@@ -64,9 +46,9 @@ else
         jq --arg ip "$MY_IP" '.unicast=$ip' "$VSOMEIP_CONFIGURATION" > "$VSOMEIP_CONFIGURATION.tmp" && mv "$VSOMEIP_CONFIGURATION.tmp" "$VSOMEIP_CONFIGURATION"
     fi
     ### Sanity checks for application name
-    CONFIG_APP=$(jq -r  '.applications[0].name' "$VSOMEIP_CONFIGURATION")
-    ROUTING_APP=$(jq -r  '.routing' "$VSOMEIP_CONFIGURATION")
-    UNICAST_APP=$(jq -r  '.unicast' "$VSOMEIP_CONFIGURATION")
+    CONFIG_APP=$(jq  -r '.applications[0].name' "$VSOMEIP_CONFIGURATION")
+    ROUTING_APP=$(jq -r '.routing' "$VSOMEIP_CONFIGURATION")
+    UNICAST_APP=$(jq -r '.unicast' "$VSOMEIP_CONFIGURATION")
     echo " json: { app_name: $CONFIG_APP, routinng: $ROUTING_APP, unicast: $UNICAST_APP }"
     echo "****************************"
     echo ""
@@ -86,5 +68,5 @@ fi
 [ -d "$SCRIPT_DIR/../lib" ] && export LD_LIBRARY_PATH="$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"
 
 echo
-echo "Execute: ./someip_feeder"
+echo "Execute: ./wiper_client --mode 2 --pos 110.0 --freq 40"
 echo
