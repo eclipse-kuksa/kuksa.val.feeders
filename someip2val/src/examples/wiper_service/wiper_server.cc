@@ -201,8 +201,12 @@ public:
         notify_condition_.notify_one();
         app_->clear_all_handler();
         stop_offer();
-        offer_thread_.join();
-        notify_thread_.join();
+        if (offer_thread_.joinable()) {
+            offer_thread_.join();
+        }
+        if (notify_thread_.joinable()) {
+            notify_thread_.join();
+        }
         app_->stop();
     }
 
@@ -352,7 +356,7 @@ public:
         its_message->set_service(WIPER_SERVICE_ID);
         its_message->set_instance(WIPER_INSTANCE_ID);
         its_message->set_method(WIPER_EVENT_ID);
-        its_message->set_interface_version(WIPER_SERVICE_MAJOR);
+        // its_message->set_interface_version(WIPER_SERVICE_MAJOR);
 
         t_Event event;
         uint32_t its_size = sizeof(event);
@@ -461,8 +465,9 @@ public:
                     }
                     app_->notify(WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, payload_);
                 }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(cycle_));
+                if (running_) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(cycle_));
+                }
             }
         }
     }
@@ -561,6 +566,7 @@ int main(int argc, char **argv) {
         its_sample.start();
         return 0;
     } else {
+        its_sample.stop();
         return 1;
     }
 }
