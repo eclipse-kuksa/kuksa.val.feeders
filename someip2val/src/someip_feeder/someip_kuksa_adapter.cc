@@ -206,11 +206,17 @@ void SomeipFeederAdapter::RunActuatorTargetSubscriber() {
     LOG_INFO << "Starting actuator target subscriber..." << std::endl;
 
     actuator_target_subscriber_running_ = true;
+    int backoff = 1;
     while (actuator_target_subscriber_running_) {
-        auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(2);
+        auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(backoff);
         if (!collector_client_->WaitForConnected(deadline)) {
             LOG_INFO << "Not connected" << std::endl;
+            if (backoff < 10) {
+                backoff++;
+            }
             continue;
+        } else {
+            backoff = 1;
         }
 
         LOG_INFO << "Connected" << std::endl;
@@ -250,9 +256,9 @@ void SomeipFeederAdapter::RunActuatorTargetSubscriber() {
                 auto wiper_mode_value = wiper_mode.string_value();
                 auto wiper_freq_value = wiper_freq.uint32_value();
                 auto wiper_target_position_value = wiper_target_position.float_value();
-                LOG_INFO << "wiper_mode_value: " << wiper_mode_value << std::endl;
-                LOG_INFO << "wiper_freq_value: " << std::dec << (int)wiper_freq_value << std::endl;
-                LOG_INFO << "wiper_target_position: " << wiper_target_position_value << std::endl;
+                LOG_DEBUG << "wiper_mode_value: " << wiper_mode_value << std::endl;
+                LOG_DEBUG << "wiper_freq_value: " << std::dec << (int)wiper_freq_value << std::endl;
+                LOG_DEBUG << "wiper_target_position: " << wiper_target_position_value << std::endl;
 
                 // TODO: mode -> e_WiperMode
                 // serialize
@@ -421,15 +427,15 @@ int SomeipFeederAdapter::on_someip_message(
         instance_id == WIPER_VSS_INSTANCE_ID &&
         method_id == WIPER_VSS_METHOD_ID)
     {
-
-        LOG_DEBUG << "Received Response from ["
+        LOG_INFO << "Received Response from ["
             << std::setw(4) << std::setfill('0') << std::hex
             << service_id << "."
             << std::setw(4) << std::setfill('0') << std::hex
             << instance_id << "."
             << std::setw(4) << std::setfill('0') << std::hex
             << method_id << "], payload ["
-            << sdv::someip::hexdump((uint8_t*)payload, payload_length) << std::endl;
+            << sdv::someip::hexdump((uint8_t*)payload, payload_length) << "]"
+            << std::endl;
 
         return 0;
     }
