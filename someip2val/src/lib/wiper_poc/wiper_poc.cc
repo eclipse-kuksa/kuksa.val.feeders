@@ -138,7 +138,10 @@ bool serialize_wiper_event(const t_Event& event, std::vector<uint8_t> &serialize
 std::string bytes_to_string(const uint8_t *payload, size_t payload_size) {
     std::stringstream ss;
     for (uint32_t i = 0; i < payload_size; ++i) {
-        ss << std::hex << std::setw(2) << std::setfill('0') << (int) payload[i] << " ";
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int) payload[i];
+        if (i < payload_size-1) {
+            ss << " ";
+        }
     }
     return ss.str();
 }
@@ -215,7 +218,7 @@ bool serialize_vss_request(uint8_t *payload, size_t payload_size, const t_WiperR
     // datatype: float
     // unit: degrees
 
-    if (payload_size < 6) {
+    if (payload_size < WIPER_SET_PAYLOAD_SIZE) {
         std::cerr << __func__ << " Payload size " << payload_size << " is too small!" << std::endl;
         return false;
     }
@@ -234,7 +237,7 @@ bool deserialize_vss_request(const uint8_t *payload, size_t payload_size, t_Wipe
     uint8_t tmp[4];
 
     memset(&request, 0, sizeof(request));
-    if (payload_size < 6) {
+    if (payload_size < WIPER_SET_PAYLOAD_SIZE) {
         std::cerr << __func__ << " Payload size " << payload_size << " is too small!" << std::endl;
         return false;
     }
@@ -249,6 +252,24 @@ bool deserialize_vss_request(const uint8_t *payload, size_t payload_size, t_Wipe
     return true;
 }
 
+bool wiper_mode_parse(const std::string &str, e_WiperMode &mode) {
+    if ("WIPE" == str) {
+        mode = e_WiperMode::WIPE;
+        return true;
+    } else if ("STOP_HOLD" == str) {
+        mode = e_WiperMode::STOP_HOLD;
+        return true;
+    } else if ("PLANT_MODE" == str) {
+        mode = e_WiperMode::PLANT_MODE;
+        return true;
+    } else if ("EMERGENCY_STOP" == str) {
+        mode = e_WiperMode::EMERGENCY_STOP;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 std::string wiper_mode_to_string(e_WiperMode mode) {
     switch (mode) {
         case e_WiperMode::EMERGENCY_STOP:
@@ -260,7 +281,7 @@ std::string wiper_mode_to_string(e_WiperMode mode) {
         case e_WiperMode::WIPE:
             return "WIPE";
         default:
-            return "Invalid!";
+            return "Invalid(" + std::to_string((int)mode) + ")";
     }
 }
 

@@ -3,11 +3,11 @@
   "netmask": "255.255.255.0",
   "diagnosis": "0x1",
   "logging": {
-    "level": "info",
+    "level": "debug",
     "console": "true",
     "file": {
-      "enable": "true",
-      "path": "./vsomeip.log"
+      "enable": "false",
+      "path": "/var/log/vsomeip.log"
     },
     "dlt": "false",
     "version": {
@@ -22,15 +22,15 @@
   },
   "applications": [
     {
-      "name": "wiper_client",
-      "id": "0xcfc7"
+      "name": "someip_feeder",
+      "id": "0xC6F6"
     }
   ],
   "clients": [
     {
       "unreliable_client_ports": {
-        "first": "30492",
-        "last": "30492"
+        "first": "30491",
+        "last": "30491"
       },
       "unreliable_remote_ports": {
         "first": "30501",

@@ -15,11 +15,13 @@
 
 #include "wiper_sim.h"
 
+extern int debug;
+
 namespace sdv {
 namespace someip {
 namespace wiper {
 
-wiper_simulator::wiper_simulator(uint32_t _cycle):
+wiper_simulator::wiper_simulator(uint32_t _cycle, bool _sim_active) :
     model_counter_(0),
     gen_(rd_()),
     cycle_(_cycle),
@@ -28,12 +30,13 @@ wiper_simulator::wiper_simulator(uint32_t _cycle):
     sim_pos_step_(1),
     sim_frequency_(0),
     sim_model_step_(0),
-    sim_wiping_(false)
+    sim_wiping_(false),
+    sim_active_(_sim_active)
 {
 }
 
 void wiper_simulator::model_init() {
-    
+
     //std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
     // std::uniform_real_distribution<float> current_rnd(-0.05f, 0.05f);
     // std::uniform_real_distribution<float> speed_rnd(0.0f, default_pos_step/3.0f);
@@ -60,29 +63,31 @@ void wiper_simulator::model_init() {
 }
 
 void wiper_simulator::model_step(t_Event& event) {
-    
+
     std::lock_guard<std::mutex> its_lock(configure_mutex_);
-    
+
     model_counter_++;
     event_.sequenceCounter = (uint8_t)(model_counter_ & 0xFF);
 
-    // toggle isOverheated ~9s
-    if ((cycle_ * model_counter_) % 9000 == 0) {
-        event_.data.isOverheated = !event_.data.isOverheated;
-        std::cout << std::endl << "*** wiper "
-            << (event_.data.isOverheated ? "Overheated." : "not Overheated") << std::endl << std::endl;
-    }
+    // only change states if simulation is active, otherwise just react to vss set commands
+    if (sim_active_) {
+        // toggle isOverheated ~9s
+        if ((cycle_ * model_counter_) % 9000 == 0) {
+            event_.data.isOverheated = !event_.data.isOverheated;
+            std::cout << std::endl << "*** wiper "
+                << (event_.data.isOverheated ? "Overheated." : "not Overheated") << std::endl << std::endl;
+        }
 
-    // toggle isWiping ~5s
-    if ((cycle_ * model_counter_) % 15000 == 0) {
-        sim_wiping_ = !sim_wiping_;
-        std::cout << std::endl << "*** wiping "
-            << (event_.data.isWiping ? "started." : "stopped.") << std::endl << std::endl;
+        // toggle isWiping ~5s
+        if ((cycle_ * model_counter_) % 15000 == 0) {
+            sim_wiping_ = !sim_wiping_;
+            std::cout << std::endl << "*** wiping "
+                << (event_.data.isWiping ? "started." : "stopped.") << std::endl << std::endl;
+        }
     }
-
     event_.data.isWiping = sim_wiping_;
 
-    // simulate wiper movement
+    // simulate wiper movement (not depending on sim_active_)
     if (sim_wiping_) {
         // assume positive
         if (event_.data.ActualPosition >= sim_target_pos_) {
@@ -117,18 +122,23 @@ void wiper_simulator::model_set(const t_WiperRequest &req) {
         sim_wiping_ = false;
     }
 
+    if (debug > 0) std::cout << std::endl << "*** wiping "
+        << (sim_wiping_ ? "started." : "stopped.")
+        << std::endl << std::endl;
+
+
     sim_frequency_ = req.Frequency;
     sim_target_pos_ = req.TargetPosition;
     // | freq = cycles per 60000 ms <=> freq * 180.0 degrees per 60000 ms.
     // | deg_per_ms = (freq * 120.0) / 60000.0
     // | model_step_per_cycle = cycle_ * deg_per_ms
     sim_model_step_ = cycle_ * sim_frequency_ * 120.0f / 60000.0f;
-    
+
     // get current pos vs target pos
     if (event_.data.ActualPosition > sim_target_pos_) {
         sim_model_step_ = -sim_model_step_;
     }
-    std::cout << "   --> sim_model_step_ = " << sim_pos_step_;
+    if (debug > 1) std::cout << "   --> sim_model_step_ = " << sim_pos_step_;
 }
 
 }  // namespace wiper

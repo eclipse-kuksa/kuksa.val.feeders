@@ -15,14 +15,15 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export VSOMEIP_APPLICATION_NAME="wiper_data"
+export VSOMEIP_APPLICATION_NAME="wiper_service"
 
-if [ -f "$SCRIPT_DIR/config/someip_wiper_service.json" ]; then
-    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/someip_wiper_service.json"
+CFG="someip_wiper_service.json"
+if [ -f "$SCRIPT_DIR/config/$CFG" ]; then
+    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/$CFG"
 else
-    GIT_ROOT="$(git rev-parse --show-toplevel)"
-    if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/someip2val/config/someip_wiper_service.json" ]; then
-        VSOMEIP_CONFIGURATION="$GIT_ROOT/someip2val/config/someip_wiper_service.json"
+    GIT_ROOT=$(git rev-parse --show-toplevel)
+    if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/someip2val/config/$CFG" ]; then
+        VSOMEIP_CONFIGURATION="$GIT_ROOT/someip2val/config/$CFG"
     fi
 fi
 export VSOMEIP_CONFIGURATION
@@ -44,9 +45,9 @@ else
         echo "****************************"
     fi
     ### Sanity checks for application name
-    CONFIG_APP=$(jq -r  '.applications[0].name' "$VSOMEIP_CONFIGURATION")
-    ROUTING_APP=$(jq -r  '.routing' "$VSOMEIP_CONFIGURATION")
-    UNICAST_APP=$(jq -r  '.unicast' "$VSOMEIP_CONFIGURATION")
+    CONFIG_APP=$(jq  -r '.applications[0].name' "$VSOMEIP_CONFIGURATION")
+    ROUTING_APP=$(jq -r '.routing' "$VSOMEIP_CONFIGURATION")
+    UNICAST_APP=$(jq -r '.unicast' "$VSOMEIP_CONFIGURATION")
     echo " json: { app_name: $CONFIG_APP, routinng: $ROUTING_APP, unicast: $UNICAST_APP }"
     echo "****************************"
     echo ""

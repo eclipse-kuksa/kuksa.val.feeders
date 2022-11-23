@@ -15,12 +15,12 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/config/someip_wiper_client.json" ]; then
-    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/someip_wiper_client.json"
+if [ -f "$SCRIPT_DIR/config/someip_feeder.json" ]; then
+    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/someip_feeder.json"
 else
     GIT_ROOT=$(git rev-parse --show-toplevel)
-    if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/someip2val/config/someip_wiper_client.json" ]; then
-        VSOMEIP_CONFIGURATION="$GIT_ROOT/someip2val/config/someip_wiper_client.json"
+    if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/someip2val/config/someip_feeder.json" ]; then
+        VSOMEIP_CONFIGURATION="$GIT_ROOT/someip2val/config/someip_feeder.json"
     fi
 fi
 export VSOMEIP_CONFIGURATION
@@ -31,9 +31,17 @@ export SOMEIP_CLI_SERVICE="0x60D0"
 export SOMEIP_CLI_INSTANCE="0x0001"
 export SOMEIP_CLI_EVENTGROUP="0x0064"
 export SOMEIP_CLI_EVENT="0x8001"
-
 export SOMEIP_CLI_MAJOR=1
 export SOMEIP_CLI_MINOR=0
+
+# request/response service
+export SOMEIP_CLI_REQ=1
+export SOMEIP_CLI_REQ_SERVICE="0x6123"
+export SOMEIP_CLI_REQ_INSTANCE="0x000b"
+export SOMEIP_CLI_REQ_METHOD="0x0007"
+export SOMEIP_CLI_REQ_MAJOR=1
+export SOMEIP_CLI_REQ_MINOR=0
+
 
 # default debug levels
 [ -z "$DBF_DEBUG" ] && export DBF_DEBUG=1 ### INFO

@@ -1,37 +1,48 @@
 {
-    "unicast": "127.0.0.1",
-    "netmask": "255.255.255.0",
-    "diagnosis": "0x1",
-
-    "logging":
-    {
-        "level": "debug",
-        "console": "true",
-        "file": { "enable": "false", "path": "/var/log/vsomeip.log" },
-        "dlt": "false",
-        "version": { "enable": "false" },
-        "status_log_interval": "30",
-        "statistics": {
-            "interval": "30",
-            "min-frequency": "5",
-            "max-messages": "10"
-        }
-    },
-
-    "applications" :
-    [
-        {
-            "name": "someip_feeder",
-            "id" : "0x1346"
-        }
-    ],
-
-    "routing": "someip_feeder",
-    "service-discovery" :
-    {
-        "enable": "true",
-        "multicast": "239.0.0.1",
-        "port": "30490",
-        "protocol": "udp"
+  "unicast": "127.0.0.1",
+  "netmask": "255.255.255.0",
+  "diagnosis": "0x1",
+  "logging": {
+    "level": "debug",
+    "console": "true",
+    "file": { "enable": "false", "path": "/var/log/vsomeip.log" },
+    "dlt": "false",
+    "version": { "enable": "false" },
+    "__status_log_interval": "30",
+    "__statistics": {
+      "interval": "30",
+      "min-frequency": "5",
+      "max-messages": "10"
     }
+  },
+  "applications": [
+    {
+      "name": "someip_feeder",
+      "id": "0xC6F6"
+    }
+  ],
+  "clients": [
+    {
+      "unreliable_client_ports": {
+        "first": "30491",
+        "last": "30491"
+      },
+      "unreliable_remote_ports": {
+        "first": "30501",
+        "last": "30501"
+      }
+    },
+    {
+      "service": "0x6123",
+      "instance": "0x000b",
+      "unreliable": "41234"
+    }
+  ],
+  "routing": "someip_feeder",
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "239.0.0.1",
+    "port": "30490",
+    "protocol": "udp"
+  }
 }

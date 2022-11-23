@@ -56,6 +56,7 @@ target_link_libraries(wiper_client
     vsomeip3
     # ${Boost_LIBRARIES}
     # ${DL_LIBRARY}
+    pthread
 )
 
 install(TARGETS
