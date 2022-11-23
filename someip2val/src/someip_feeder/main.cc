@@ -111,7 +111,7 @@ void AdapterRun() {
  */
 int main(int argc, char** argv) {
 
-    std::string target_str = "localhost:55555";
+    std::string target_str = sdv::someip::getEnvironmentStr("BROKER_ADDR", "localhost:55555");
     bool use_tcp = false;
     bool use_dummy_feeder = false;
 

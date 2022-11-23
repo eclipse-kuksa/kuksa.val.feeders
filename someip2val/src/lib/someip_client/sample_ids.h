@@ -24,5 +24,8 @@
 #define SAMPLE_EVENTGROUP_ID    0x4465
 #define SAMPLE_EVENT_ID         0x8000
 
+// Internally considered as invalid value for service/instance/method IDs
+#define SAMPLE_INVALID_VALUE    0x0000
+
 
 #endif // SOMEIP_SAMPLE_IDS_H
