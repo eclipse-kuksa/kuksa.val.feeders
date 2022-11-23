@@ -251,15 +251,45 @@ void SomeipFeederAdapter::RunActuatorTargetSubscriber() {
                 auto wiper_freq_value = wiper_freq.uint32_value();
                 auto wiper_target_position_value = wiper_target_position.float_value();
                 LOG_INFO << "wiper_mode_value: " << wiper_mode_value << std::endl;
-                LOG_INFO << "wiper_freq_value: " << wiper_freq_value << std::endl;
+                LOG_INFO << "wiper_freq_value: " << std::dec << (int)wiper_freq_value << std::endl;
                 LOG_INFO << "wiper_target_position: " << wiper_target_position_value << std::endl;
+
+                // TODO: mode -> e_WiperMode
+                // serialize
+
+                sdv::someip::wiper::e_WiperMode mode;
+                if (!sdv::someip::wiper::wiper_mode_parse(wiper_mode_value, mode)) {
+                    LOG_ERROR << "Invalid WiperMode value: " << wiper_mode_value << std::endl;
+                    continue;
+                }
+                sdv::someip::wiper::t_WiperRequest req = { (uint8_t)wiper_freq_value, wiper_target_position_value, mode };
+                uint8_t vss_payload[WIPER_SET_PAYLOAD_SIZE];
+                if (!sdv::someip::wiper::serialize_vss_request(vss_payload, sizeof(vss_payload), req)) {
+                    LOG_ERROR << "Failed to serialize WiperRequest: "
+                            << sdv::someip::wiper::vss_request_to_string(req) << std::endl;
+                    continue;
+                }
 
                 // Send SOME/IP request
                 if (someip_client_) {
                     // someip_client_->SendRequest(wiper_mode_value, wiper_freq_value, wiper_target_position_value);
+                    std::vector<vsomeip::byte_t> payload;
+                    payload.insert(payload.end(), &vss_payload[0], &vss_payload[sizeof(vss_payload)]);
+                    LOG_INFO << "Sending " << sdv::someip::wiper::vss_request_to_string(req) << std::endl;
+                    someip_client_->SendRequest(
+                            WIPER_VSS_SERVICE_ID,
+                            WIPER_VSS_INSTANCE_ID,
+                            WIPER_VSS_METHOD_ID,
+                            payload);
+
                 }
             } else {
-                LOG_INFO << "Not all actuator targets included in notification" << std::endl;
+                std::stringstream ss;
+                for (auto kv : actuator_targets) {
+                    ss << kv.first << " ";
+                }
+                LOG_INFO << "Not all actuator targets included in notification ["
+                        << ss.str() << "]" << std::endl;
             }
         }
         actuator_target_subscriber_context_ = nullptr;
@@ -291,6 +321,10 @@ void SomeipFeederAdapter::Start() {
     actuator_target_subscriber_thread_ = std::make_shared<std::thread> ([this]() {
         RunActuatorTargetSubscriber();
     });
+    int rc = pthread_setname_np(actuator_target_subscriber_thread_->native_handle(), "target_subscr");
+    if (rc != 0) {
+        LOG_ERROR << "Failed setting someip thread name:" << rc << std::endl;
+    }
 
     feeder_active_ = true;
 }
@@ -380,14 +414,29 @@ void SomeipFeederAdapter::FeedDummyData() {
 }
 
 int SomeipFeederAdapter::on_someip_message(
-            vsomeip::service_t service_id, vsomeip::instance_t instance_id, vsomeip::method_t event_id,
+            vsomeip::service_t service_id, vsomeip::instance_t instance_id, vsomeip::method_t method_id,
             const uint8_t *payload, size_t payload_length)
 {
-    sdv::someip::wiper::t_Event event;
+    if (service_id == WIPER_VSS_SERVICE_ID &&
+        instance_id == WIPER_VSS_INSTANCE_ID &&
+        method_id == WIPER_VSS_METHOD_ID)
+    {
 
+        LOG_DEBUG << "Received Response from ["
+            << std::setw(4) << std::setfill('0') << std::hex
+            << service_id << "."
+            << std::setw(4) << std::setfill('0') << std::hex
+            << instance_id << "."
+            << std::setw(4) << std::setfill('0') << std::hex
+            << method_id << "], payload ["
+            << sdv::someip::hexdump((uint8_t*)payload, payload_length) << std::endl;
+
+        return 0;
+    }
     if (service_id  != WIPER_SERVICE_ID ||
         instance_id != WIPER_INSTANCE_ID ||
-        event_id    != WIPER_EVENT_ID) {
+        method_id   != WIPER_EVENT_ID)
+    {
 
         LOG_ERROR << "Ignored non-wiper event ["
             << std::setw(4) << std::setfill('0') << std::hex
@@ -395,10 +444,11 @@ int SomeipFeederAdapter::on_someip_message(
             << std::setw(4) << std::setfill('0') << std::hex
             << instance_id << "."
             << std::setw(4) << std::setfill('0') << std::hex
-            << event_id << "]" << std::endl;
+            << method_id << "]" << std::endl;
             return -1;
     }
 
+    sdv::someip::wiper::t_Event event;
     if (sdv::someip::wiper::deserialize_event(payload, payload_length, event)) {
         if (someip_client_->GetConfig().debug > 0) {
             LOG_DEBUG << "Received "
@@ -432,6 +482,7 @@ int SomeipFeederAdapter::on_someip_message(
     LOG_ERROR << "Deserializaton failed!" << std::endl;
     return -2; // deserialize failed
 }
+
 
 }  // namespace adapter
 }  // namespace sdv

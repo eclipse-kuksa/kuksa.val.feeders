@@ -22,6 +22,36 @@
 namespace sdv {
 namespace someip {
 
+
+struct SomeIPRequestConfig {
+    bool use_req = false;
+    /**
+     * @brief SOME/IP Service ID for request/response
+     */
+    vsomeip::service_t service = SAMPLE_INVALID_VALUE;
+
+    /**
+     * @brief SOME/IP Instance ID for request/response
+     */
+    vsomeip::instance_t instance = SAMPLE_INVALID_VALUE;
+
+    /**
+     * @brief SOME/IP Method ID or request/response
+     */
+    vsomeip::method_t method = SAMPLE_INVALID_VALUE;
+
+    /**
+     * @brief SOME/IP Service major version. May be needed if service/someip
+     * impl register with major != 0
+     */
+    vsomeip::major_version_t service_major = vsomeip::ANY_MAJOR;
+    /**
+     * @brief SOME/IP Service minor version.
+     */
+    vsomeip::minor_version_t service_minor = vsomeip::ANY_MINOR;
+};
+
+
 /**
  * @brief SOME/IP Client configuration.
  *
@@ -81,8 +111,10 @@ struct SomeIPConfig {
      * @brief SOME/IP Service minor version.
      */
     vsomeip::minor_version_t service_minor = vsomeip::ANY_MINOR;
-};
 
+    ///// request response service config
+    SomeIPRequestConfig req;
+};
 
 /**
  * @brief callback std::function for handling incoming SOME/IP payload
@@ -105,7 +137,7 @@ typedef std::function <
  */
 class SomeIPClient
 {
-  public:
+public:
 
     /**
      * @brief Create an Instance of someip client.
@@ -129,12 +161,16 @@ class SomeIPClient
     bool Run();
     void Shutdown();
 
-  protected:
+    int SendRequest(vsomeip::service_t service, vsomeip::instance_t instance, vsomeip::method_t method,
+                    std::vector<vsomeip::byte_t> payload);
+
+
+protected:
     bool init();
     void start(); // blocking call, should be called from a thread
     void stop();
 
-  protected:
+protected:
     SomeIPClient() = default;
     SomeIPClient(const SomeIPClient&) = delete;
     SomeIPClient& operator=(const SomeIPClient&) = delete;
@@ -142,6 +178,14 @@ class SomeIPClient
     void on_state(vsomeip::state_type_e _state);
     void on_message(const std::shared_ptr<vsomeip::message> &_response);
     void on_availability(vsomeip::service_t _service, vsomeip::instance_t _instance, bool _is_available);
+
+    void init_event_service(
+            vsomeip::service_t service,
+            vsomeip::instance_t instance,
+            vsomeip::eventgroup_t event_group,
+            vsomeip::event_t event,
+            vsomeip::major_version_t service_major,
+            vsomeip::minor_version_t service_minor);
 
   protected:
     std::shared_ptr<vsomeip::application> app_;
@@ -162,7 +206,21 @@ class SomeIPClient
     vsomeip_v3::instance_t      instance_;
     vsomeip_v3::eventgroup_t    event_group_;
     vsomeip_v3::event_t         event_;
-};
+
+    // request service (single)
+    bool use_req_;
+    bool req_service_available;
+    std::mutex req_mutex_;
+    std::condition_variable req_condition_;
+    // SomeIPRequestConfig req_config_;
+
+    vsomeip_v3::service_t       req_service_;
+    vsomeip_v3::major_version_t req_service_major_;
+    vsomeip_v3::minor_version_t req_service_minor_;
+    vsomeip_v3::instance_t      req_instance_;
+    vsomeip_v3::event_t         req_method_;
+
+ };
 
 
 /**
@@ -172,6 +230,15 @@ class SomeIPClient
  * @return std::string description
  */
 std::string message_type_to_string(vsomeip::message_type_e msg_type);
+
+/**
+ * @brief
+ *
+ * @param buf
+ * @param size
+ * @return std::string
+ */
+std::string hexdump(uint8_t *buf, size_t size);
 
 /**
  * @brief Get an integer value from Environment variable
