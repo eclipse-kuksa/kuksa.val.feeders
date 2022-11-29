@@ -30,7 +30,7 @@ import os, sys, json, signal
 import csv
 import time
 import queue
-import gps
+from gpsdclient import GPSDClient
 
 scriptDir= os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(scriptDir, "../../"))
@@ -59,8 +59,9 @@ class Kuksa_Client():
             if v is not None:
                 self.client.setValue(k,str(v))
                
-class GPSD_Client():
+class GPSDClientThread(threading.Thread):
     def __init__(self, config, consumer):
+        super(GPSDClientThread, self).__init__()
         print("Init gpsd client...")
         if "gpsd" not in config:
             print("gpsd section missing from configuration, exiting")
@@ -73,47 +74,42 @@ class GPSD_Client():
         self.interval = provider_config.getint('interval', 1)
 
         print("Trying to connect gpsd at "+str(self.gpsd_host)+" port "+str(self.gpsd_port))
-        self.gpsd = gps.gps(host = self.gpsd_host, port = self.gpsd_port, mode=gps.WATCH_ENABLE)
+        self.client = GPSDClient(host=self.gpsd_host, port=self.gpsd_port)
 
         self.collecteddata = {  }
         self.running = True
 
-        self.thread = threading.Thread(target=self.loop, args=())
-        self.thread.start()
-
-    def loop(self):
+    def run(self):
         print("gpsd receive loop started")
-        while self.running:
-            try:
-                if self.gpsd.waiting():
-                    report = self.gpsd.next()
-                    if report['class'] == 'TPV':
-                        print("")
-                        self.collecteddata['Vehicle.CurrentLocation.Latitude']= getattr(report,'lat',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Longitude']= getattr(report,'lon',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Altitude']= getattr(report,'alt', None)
-                        self.collecteddata['Vehicle.Speed']= getattr(report,'speed',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Timestamp']= getattr(report,'time',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Heading']= getattr(report,'track',None)
-                        self.collecteddata['Vehicle.CurrentLocation.HorizontalAccuracy']= getattr(report,'eph',None)
-                        self.collecteddata['Vehicle.CurrentLocation.VerticalAccuracy']= getattr(report,'epv',None)
+        for result in self.client.dict_stream(filter=["TPV"]):
+            if self.running:
+                print("")
+                self.collecteddata['Vehicle.CurrentLocation.Latitude']= result.get('lat')
+                self.collecteddata['Vehicle.CurrentLocation.Longitude']= result.get('lon')
+                self.collecteddata['Vehicle.CurrentLocation.Altitude']= result.get('alt')
+                self.collecteddata['Vehicle.Speed']= result.get('speed')
+                self.collecteddata['Vehicle.CurrentLocation.Timestamp']= result.get('time')
+                self.collecteddata['Vehicle.CurrentLocation.Heading']= result.get('track')
+                self.collecteddata['Vehicle.CurrentLocation.HorizontalAccuracy']= result.get('eph')
+                self.collecteddata['Vehicle.CurrentLocation.VerticalAccuracy']= result.get('epv')
 
-                        self.consumer.setData(self.collecteddata)
-                time.sleep(self.interval) 
-            except Exception as e:
-                print("Got exception: ")
-                print(e)
-                time.sleep(self.interval) 
-                continue
+                self.consumer.setData(self.collecteddata)
+                time.sleep(self.interval)
+            else:
+                print("Exiting")
+                break
 
      
 
 
     def shutdown(self):
-        self.running=False
+        self.running = False
         self.consumer.shutdown()
-        self.gpsd.close()
-        self.thread.join()
+        print("KUKSA client shutdown")
+        self.client.close()
+        print("GPSD client shutdown")
+        self.join()
+        print("Shutdown completed")
 
         
 if __name__ == "__main__":
@@ -128,11 +124,12 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(configfile)
     
-    client = GPSD_Client(config, Kuksa_Client(config))
+    gpsd_client = GPSDClientThread(config, Kuksa_Client(config))
+    gpsd_client.start()
 
     def terminationSignalreceived(signalNumber, frame):
         print("Received termination signal. Shutting down")
-        client.shutdown()
+        gpsd_client.shutdown()
     signal.signal(signal.SIGINT, terminationSignalreceived)
     signal.signal(signal.SIGQUIT, terminationSignalreceived)
     signal.signal(signal.SIGTERM, terminationSignalreceived)
