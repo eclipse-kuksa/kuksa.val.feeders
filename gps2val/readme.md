@@ -2,10 +2,8 @@
 consumes [gpsd](https://gpsd.gitlab.io/gpsd/) as datasource and pushes location to kuksa.val server.
 The [`gpsd_feeder.ini`](./config/gpsd_feeder.ini) contains `kuksa.val` and `gpsd` configuration.
 
-Before starting the gps feeder, you need start `kuksa.val` and `gpsd`:
+Before starting the gps feeder, you need to start `kuksa.val server/databroker` (for this have a look at [KUKSA.val server](../../kuksa-val-server/README.md) and [KUKSA.val databroker](../../kuksa_databroker/README.md)). You have to start an instance of `gpsd` by running:
 ```
-<path to kuksa.val>/kuksa-val-server
-
 gpsd -S <gpsd port> -N <gps device>
 ```
 
@@ -34,7 +32,7 @@ To run:
 docker run -it -p 29998:29998/udp -v $PWD/config:/config gpsd_feeder
 ```
 
-The container contains an internal gpsd daemon and the exposed UDP port can be used to feed NMEA data e.g. with [gpsd-forward](https://github.com/tiagoshibata/Android-GPSd-Forwarder) frm an Android phone. If you already have a configured GPSd, just modify the config file to point to it.
+The container contains an internal gpsd daemon and the exposed UDP port can be used to feed NMEA data e.g. with [gpsd-forward](https://github.com/tiagoshibata/Android-GPSd-Forwarder) from an Android phone. If you already have a configured GPSd, just modify the config file to point to it.
 
 Keep in mind, that GPSd normally only listens on localhost/loopback interface. To connect it from another interface start gpsd with the `-D` option
 
