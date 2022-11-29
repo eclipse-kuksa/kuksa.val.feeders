@@ -34,7 +34,7 @@ from gpsdclient import GPSDClient
 
 scriptDir= os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(scriptDir, "../../"))
-from kuksa_viss_client import KuksaClientThread
+from kuksa_client import KuksaClientThread
 
 class Kuksa_Client():
 
@@ -47,8 +47,9 @@ class Kuksa_Client():
         provider_config=config['kuksa_val']
         self.client = KuksaClientThread(provider_config)
         self.client.start()
-        print("authorizing...")
-        self.client.authorize()
+        if str(provider_config.get('protocol')) == 'ws':
+            print("authorizing...")
+            self.client.authorize(str(provider_config.get('token')))
         
     def shutdown(self):
         self.client.stop()

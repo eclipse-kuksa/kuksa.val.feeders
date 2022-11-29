@@ -1,2 +1,2 @@
-kuksa-viss-client
+kuksa-client
 gpsdclient
