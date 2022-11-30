@@ -33,7 +33,7 @@ jobs:
     runs-on: self-hosted
     needs: [check_push_rights]
     # As long as we use GRPCIO and Alpine we might need to build grpc for aarch64 which sometimes takes long time
-    timeout-minutes: 120
+    # timeout-minutes: 120
 
     steps:
     - uses: actions/checkout@v2
