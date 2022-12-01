@@ -5,8 +5,11 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-env:
-  IMAGE_NAME: ${{ github.repository }}/gps
+    paths: 
+     - ".github/workflows/kuksa_gps_feeder.yml"
+     - "gps2val/**"
+  workflow_dispatch:
+  
 
 jobs:
   check_push_rights:
@@ -32,20 +35,16 @@ jobs:
   build:
     runs-on: self-hosted
     needs: [check_push_rights]
-    # As long as we use GRPCIO and Alpine we might need to build grpc for aarch64 which sometimes takes long time
-    # timeout-minutes: 120
-
+   
     steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
+    - uses: actions/checkout@v3
         
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v3.5.0
       with:
         # list of Docker images to use as base name for tags
-        images: ${{ needs.check_push_rights.outputs.registry }}/${{ env.IMAGE_NAME }}
+        images: ghcr.io/eclipse/kuksa.val.feeders/gps
         # generate Docker tags based on the following events/attributes
         tags: |
           type=ref,event=branch
@@ -64,31 +63,31 @@ jobs:
           username: kuksa-bot
           password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
                   
-    - name: Build and push KUKSA gps feeder container image
-      if: needs.check_push_rights.outputs.have_secrets == 'true'
-      uses: docker/build-push-action@v2
+    - name: Build and push KUKSA gps feeder container image and push to ghcr.io
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }} 
+      uses: docker/build-push-action@v3
       with:
         platforms: |
           linux/amd64
           linux/arm64
         context: gps2val
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
+        tags: |
+          ${{ steps.meta.outputs.tags }}
+          ttl.sh/kuksa.val.feeders/gps-${{github.sha}}:1h
         labels: ${{ steps.meta.outputs.labels }}
         
-        
-    - run: echo ${{ env.IMAGE_NAME }}
-    
-    - name: Build and push ephemereal KUKSA gps feeder container image
-      if: needs.check_push_rights.outputs.have_secrets == 'false'
-      uses: docker/build-push-action@v2
+            
+    - name: Build ephemereal KUKSA gps feeder and push to ttl.sh
+      if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      uses: docker/build-push-action@v3
       with:
         platforms: |
           linux/amd64
           linux/arm64
         context: gps2val
         push: true
-        tags: "ttl.sh/kuksa.val.feeders/gps:8h"
+        tags: "ttl.sh/kuksa.val.feeders/gps-${{github.sha}}:1h"
         labels: ${{ steps.meta.outputs.labels }}
         
   
