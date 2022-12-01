@@ -73,24 +73,30 @@ FetchContent_MakeAvailable(vsomeip3)
 # add sources after vsomeip3 is populated
 add_subdirectory(src)
 
-### copy scripts from current source dir to current bin dir
-configure_file(./bin/setup-someip2val.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
-configure_file(./bin/setup-someip2val-proxy.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
-configure_file(./bin/setup-wiper-service.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
-configure_file(./bin/setup-wiper-client.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
-configure_file(./bin/setup-wiper-client-proxy.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
-configure_file(./config/someip_wiper_service.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
-configure_file(./config/someip_wiper_client.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
-configure_file(./config/someip_wiper_client-proxy.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
-configure_file(./config/someip_feeder.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
-configure_file(./config/someip_feeder-proxy.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+### copy scripts from current source dir to current bin dir (useful for debuging from build dir)
+if (SDV2VAL_COPY_RESOURCES)
+  configure_file(./bin/setup-someip2val.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+  configure_file(./bin/setup-someip2val-proxy.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+  configure_file(./bin/someip2val-docker.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+  configure_file(./bin/setup-wiper-service.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+  configure_file(./bin/setup-wiper-client.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+  configure_file(./bin/setup-wiper-client-proxy.sh ${CMAKE_CURRENT_BINARY_DIR}/ COPYONLY)
+  configure_file(./config/someip_wiper_service.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+  configure_file(./config/someip_wiper_client.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+  configure_file(./config/someip_wiper_client-proxy.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+  configure_file(./config/someip_feeder.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+  configure_file(./config/someip_feeder-proxy.json ${CMAKE_CURRENT_BINARY_DIR}/config/ COPYONLY)
+endif()
 
 ###
 ### install scripts and config
 ###
 install(PROGRAMS
+  ./bin/someip2val-docker.sh
   ./bin/setup-someip2val-proxy.sh
   ./bin/setup-someip2val.sh
+  ./bin/setup-wiper-service.sh
+  ./bin/setup-wiper-client-proxy.sh
   ./bin/setup-wiper-service.sh
   DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
 )
@@ -99,5 +105,7 @@ install(FILES
   ./config/someip_wiper_client.json
   ./config/someip_wiper_client-proxy.json
   ./config/someip_wiper_service.json
+  ./config/someip_feeder-proxy.json
+  ./config/someip_feeder.json
   DESTINATION "${CMAKE_INSTALL_PREFIX}/bin/config"
 )

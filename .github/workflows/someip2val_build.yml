@@ -38,7 +38,7 @@ jobs:
               cmake g++ build-essential \
               g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
               jq python3 python3-pip python3-setuptools &&
-          pip3 install conan
+          pip3 install -U conan
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -55,3 +55,49 @@ jobs:
             ${{github.workspace}}/someip2val/target/${{ matrix.target-arch }}/release/install/bin
             ${{github.workspace}}/someip2val/target/${{ matrix.target-arch }}/release/install/lib/libvsomeip*.so.3
           if-no-files-found: error
+
+  build_docker:
+    # reduce runtime requirements from ubuntu, ubuntu-18.04 fails for aarch64
+    runs-on: ubuntu-20.04
+    name: Build docker
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}/someip-feeder
+          tags: |
+            type=sha
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=edge
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: "Build image"
+        id: image_build
+        uses: docker/build-push-action@v3
+        with:
+          pull: false
+          push: true
+          file: ./someip2val/Dockerfile
+          context: "./someip2val"
+          platforms: linux/amd64, linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -289,7 +289,7 @@ std::string vss_request_to_string(const t_WiperRequest &request) {
     std::stringstream ss;
     ss << "WiperReq: { mode:"
         << wiper_mode_to_string(request.Mode)
-        << ", freq: " << std::dec << (uint) request.Mode
+        << ", freq: " << std::dec << (uint) request.Frequency
         << ", targetPos:" << request.TargetPosition
         << " }";
     return ss.str();

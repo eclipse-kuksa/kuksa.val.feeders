@@ -294,7 +294,7 @@ void SomeipFeederAdapter::RunActuatorTargetSubscriber() {
                 for (auto kv : actuator_targets) {
                     ss << kv.first << " ";
                 }
-                LOG_INFO << "Not all actuator targets included in notification ["
+                LOG_INFO << "Not all actuator targets included in notification [ "
                         << ss.str() << "]" << std::endl;
             }
         }

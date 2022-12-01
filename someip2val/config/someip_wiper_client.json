@@ -17,7 +17,7 @@
   },
   "applications": [
     {
-      "name": "someip_feeder",
+      "name": "wiper_client",
       "id": "0xC6F6"
     }
   ],
@@ -38,7 +38,7 @@
       "unreliable": "41234"
     }
   ],
-  "routing": "someip_feeder",
+  "routing": "wiper_client",
   "service-discovery": {
     "enable": "true",
     "multicast": "239.0.0.1",
