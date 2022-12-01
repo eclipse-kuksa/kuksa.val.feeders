@@ -26,6 +26,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_ARCH="$1"
 [ -z "$TARGET_ARCH" ] && TARGET_ARCH="x86_64"
 
+# handle "amd64" as alias for "x86_64"
+[ "$TARGET_ARCH" == "amd64" ] && TARGET_ARCH="x86_64"
+
 BUILD_DIR="$2"
 [ -z "$BUILD_DIR" ] && BUILD_DIR="$SCRIPT_DIR/target/$TARGET_ARCH/release"
 
