@@ -55,13 +55,13 @@ done
 target_arch() {
 	local target="$1"
 	case "$target" in
-	"x86_64" | "amd64")
+	"x86_64" | "amd64" | "linux/amd64")
 		echo "amd64"
 		;;
-	"arm64" | "aarch64")
+	"arm64" | "aarch64" | "linux/arm64")
 		echo "arm64"
 		;;
-	"armv6" | "arm")
+	"armv6" | "arm" | "linux/arm")
 		echo "arm/v6"
 		;;
 	"multiarch" | "")
@@ -141,4 +141,5 @@ if [ $? -eq 0 ]; then
 		docker image ls | grep "/$DOCKER_IMAGE"
 	fi
 	echo "# Exported $DOCKER_ARCH/$DOCKER_IMAGE in $DOCKER_EXPORT"
+	skopeo inspect --raw oci-archive:$DOCKER_EXPORT | jq .
 fi

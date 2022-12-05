@@ -11,7 +11,17 @@ RUN pip3 install -U conan
 COPY . /src
 WORKDIR /src
 
-RUN ./build-release.sh $TARGETPLATFORM
+ARG TARGETPLATFORM
+RUN echo "Building for ${TARGETPLATFORM}"
+
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+        ./build-release.sh amd64; \
+    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        ./build-release.sh aarch64; \
+    else \
+        echo "Unsupported platform: $TARGETPLATFORM"; exit 1; \
+    fi
+# RUN ./build-release.sh $TARGETPLATFORM
 
 FROM --platform=$TARGETPLATFORM ubuntu:20.04 as final
 ARG TARGETARCH
