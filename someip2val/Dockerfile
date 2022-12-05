@@ -15,7 +15,8 @@ RUN ./build-release.sh $TARGETPLATFORM
 
 FROM --platform=$TARGETPLATFORM ubuntu:20.04 as final
 ARG TARGETARCH
+LABEL org.opencontainers.image.description "SOME/IP to KUKSA feeder/handler container. (host networking required)"
 COPY --from=builder "/src/target/*/release/install/bin/*" "/bin"
 WORKDIR "/bin"
 
-ENTRYPOINT "/bin/setup-someip2val.sh"
+CMD [ "/bin/someip2val-docker.sh" ]
