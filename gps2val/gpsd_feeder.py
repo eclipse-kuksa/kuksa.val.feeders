@@ -31,6 +31,7 @@ import csv
 import time
 import queue
 from gpsdclient import GPSDClient
+import argparse
 
 scriptDir= os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(scriptDir, "../../"))
@@ -114,14 +115,44 @@ class GPSDClientThread(threading.Thread):
 
         
 if __name__ == "__main__":
-    config_candidates=['/config/gpsd_feeder.ini', '/etc/gpsd_feeder.ini', os.path.join(scriptDir, 'config/gpsd_feeder.ini')]
-    for candidate in config_candidates:
-        if os.path.isfile(candidate):
-            configfile=candidate
-            break
-    if configfile is None:
-        print("No configuration file found. Exiting")
-        sys.exit(-1)
+    manual_config = argparse.ArgumentParser()
+    manual_config.add_argument("--host", help="Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1", nargs='?' , default="127.0.0.1")
+    manual_config.add_argument("--port", help="Specify the port where too look for KUKSA.val server/databroker; default: 8090", nargs='?' , default="8090")
+    manual_config.add_argument("--protocol", help="If you want to connect to KUKSA.val server specify ws. If you want to connect to KUKSA.val databroker specify grpc; default: ws", nargs='?' , default="ws")
+    manual_config.add_argument("--insecure", help="For KUKSA.val server specify False, for KUKSA.val databroker there is currently no security so specify True; default: False", nargs='?' , default="False")
+    manual_config.add_argument("--certificate", help="Specify the path to your Client.pem file; default: Client.pem", nargs='?' , default="Client.pem")
+    manual_config.add_argument("--cacertificate", help="Specify the path to your CA.pem; default: CA.pem", nargs='?' , default="CA.pem")
+    manual_config.add_argument("--token", help="Specify the path to your JWT token; default: all-read-write.json", nargs='?' , default="all-read-write.json")
+    manual_config.add_argument("--file", help="Specify the path to your config file; default: config/gpsd_feeder.ini", nargs='?' , default="config/gpsd_feeder.ini")
+    manual_config.add_argument("--gpsd_host", help="Specify the host for gpsd to start on; default: 127.0.0.1", nargs='?' , default="127.0.0.1")
+    manual_config.add_argument("--gpsd_port", help="Specify the port for gpsd to start on; default: 2948", nargs='?' , default="2948")
+    manual_config.add_argument("--interval", help="Specify the interval time for feeding gps data; default: 1", nargs='?' , default="1")
+    args = manual_config.parse_args()
+    print(args)
+    if os.path.isfile(args.file):
+        configfile = args.file
+    else:
+        config_object = configparser.ConfigParser()
+        print("No configuration file found. Using default values.")
+        config_object["kuksa_val"] = {
+            "host": args.host,
+            "port": args.port,
+            "protocol": args.protocol,
+            "insecure": args.insecure,
+            "certificate": args.certificate,
+            "cacertificate": args.cacertificate,
+            "token": args.token,
+            "file": args.file,
+        }
+        config_object["gpsd"] = {
+            "interval": args.interval,
+            "host": args.gpsd_host,
+            "port": args.gpsd_port, 
+        }
+        with open('config.ini', 'w') as conf:
+            config_object.write(conf) 
+        configfile = "config.ini"
+
     config = configparser.ConfigParser()
     config.read(configfile)
     
