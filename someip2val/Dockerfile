@@ -25,7 +25,10 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
 
 FROM --platform=$TARGETPLATFORM ubuntu:20.04 as final
 ARG TARGETARCH
-# LABEL org.opencontainers.image.description "SOME/IP to KUKSA feeder/handler container. (host networking required)"
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && \
+    apt-get install -y jq && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR "/app/lib"
 COPY --from=builder "/src/target/*/release/install/lib/*" "/app/lib"

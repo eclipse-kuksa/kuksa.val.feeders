@@ -2,8 +2,8 @@ build
 target
 k3d
 docker
-*.a
-*.cmake
-*.pc
+**/*.a
+**/*.cmake
+**/*.pc
 *.tar
 *.tar.gz
