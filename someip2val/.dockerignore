@@ -1,6 +1,9 @@
 build
 target
-lib
 k3d
 docker
+*.a
+*.cmake
+*.pc
+*.tar
 *.tar.gz

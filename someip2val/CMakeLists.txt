@@ -65,7 +65,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(vsomeip3)
 
 # exclude vsomeip files from installation, commented as we need built libraries
-# if(faIS_DIRECTORY "${vsomeip3_SOURCE_DIR}")
+# if(IS_DIRECTORY "${vsomeip3_SOURCE_DIR}")
 #   message(STATUS "Excluding vsomeip3 sources: ${vsomeip3_SOURCE_DIR}")
 #   set_property(DIRECTORY ${vsomeip3_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
 # endif()

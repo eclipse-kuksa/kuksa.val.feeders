@@ -25,8 +25,14 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
 
 FROM --platform=$TARGETPLATFORM ubuntu:20.04 as final
 ARG TARGETARCH
-LABEL org.opencontainers.image.description "SOME/IP to KUKSA feeder/handler container. (host networking required)"
-COPY --from=builder "/src/target/*/release/install/bin/*" "/bin"
-WORKDIR "/bin"
+# LABEL org.opencontainers.image.description "SOME/IP to KUKSA feeder/handler container. (host networking required)"
 
-CMD [ "/bin/someip2val-docker.sh" ]
+WORKDIR "/app/lib"
+COPY --from=builder "/src/target/*/release/install/lib/*" "/app/lib"
+
+WORKDIR "/app/bin"
+COPY --from=builder "/src/target/*/release/install/bin" "/app/bin"
+
+RUN find /app 1>&2
+
+CMD [ "/app/bin/someip2val-docker.sh" ]
