@@ -139,7 +139,8 @@ if [ $? -eq 0 ]; then
 		echo "docker image tag $DOCKER_ARCH/$DOCKER_IMAGE ghcr.io/eclipse/kuksa.val.services/$DOCKER_IMAGE:prerelease"
 		docker image tag $DOCKER_ARCH/$DOCKER_IMAGE ghcr.io/eclipse/kuksa.val.services/$DOCKER_IMAGE:prerelease
 		docker image ls | grep "/$DOCKER_IMAGE"
+	else
+		echo "# Exported $DOCKER_ARCH/$DOCKER_IMAGE in $DOCKER_EXPORT"
+		skopeo inspect --raw oci-archive:$DOCKER_EXPORT | jq .
 	fi
-	echo "# Exported $DOCKER_ARCH/$DOCKER_IMAGE in $DOCKER_EXPORT"
-	skopeo inspect --raw oci-archive:$DOCKER_EXPORT | jq .
 fi
