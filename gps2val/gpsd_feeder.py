@@ -30,11 +30,12 @@ import os, sys, json, signal
 import csv
 import time
 import queue
-import gps
+from gpsdclient import GPSDClient
+import argparse
 
 scriptDir= os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(scriptDir, "../../"))
-from kuksa_viss_client import KuksaClientThread
+from kuksa_client import KuksaClientThread
 
 class Kuksa_Client():
 
@@ -47,8 +48,9 @@ class Kuksa_Client():
         provider_config=config['kuksa_val']
         self.client = KuksaClientThread(provider_config)
         self.client.start()
-        print("authorizing...")
-        self.client.authorize()
+        if str(provider_config.get('protocol')) == 'ws':
+            print("authorizing...")
+            self.client.authorize(str(provider_config.get('token')))
         
     def shutdown(self):
         self.client.stop()
@@ -59,8 +61,9 @@ class Kuksa_Client():
             if v is not None:
                 self.client.setValue(k,str(v))
                
-class GPSD_Client():
+class GPSDClientThread(threading.Thread):
     def __init__(self, config, consumer):
+        super(GPSDClientThread, self).__init__()
         print("Init gpsd client...")
         if "gpsd" not in config:
             print("gpsd section missing from configuration, exiting")
@@ -73,66 +76,92 @@ class GPSD_Client():
         self.interval = provider_config.getint('interval', 1)
 
         print("Trying to connect gpsd at "+str(self.gpsd_host)+" port "+str(self.gpsd_port))
-        self.gpsd = gps.gps(host = self.gpsd_host, port = self.gpsd_port, mode=gps.WATCH_ENABLE)
+        self.client = GPSDClient(host=self.gpsd_host, port=self.gpsd_port)
 
         self.collecteddata = {  }
         self.running = True
 
-        self.thread = threading.Thread(target=self.loop, args=())
-        self.thread.start()
-
-    def loop(self):
+    def run(self):
         print("gpsd receive loop started")
-        while self.running:
-            try:
-                if self.gpsd.waiting():
-                    report = self.gpsd.next()
-                    if report['class'] == 'TPV':
-                        print("")
-                        self.collecteddata['Vehicle.CurrentLocation.Latitude']= getattr(report,'lat',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Longitude']= getattr(report,'lon',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Altitude']= getattr(report,'alt', None)
-                        self.collecteddata['Vehicle.Speed']= getattr(report,'speed',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Timestamp']= getattr(report,'time',None)
-                        self.collecteddata['Vehicle.CurrentLocation.Heading']= getattr(report,'track',None)
-                        self.collecteddata['Vehicle.CurrentLocation.HorizontalAccuracy']= getattr(report,'eph',None)
-                        self.collecteddata['Vehicle.CurrentLocation.VerticalAccuracy']= getattr(report,'epv',None)
+        for result in self.client.dict_stream(filter=["TPV"]):
+            if self.running:
+                print("")
+                self.collecteddata['Vehicle.CurrentLocation.Latitude']= result.get('lat')
+                self.collecteddata['Vehicle.CurrentLocation.Longitude']= result.get('lon')
+                self.collecteddata['Vehicle.CurrentLocation.Altitude']= result.get('alt')
+                self.collecteddata['Vehicle.Speed']= result.get('speed')
+                self.collecteddata['Vehicle.CurrentLocation.Timestamp']= result.get('time')
+                self.collecteddata['Vehicle.CurrentLocation.Heading']= result.get('track')
+                self.collecteddata['Vehicle.CurrentLocation.HorizontalAccuracy']= result.get('eph')
+                self.collecteddata['Vehicle.CurrentLocation.VerticalAccuracy']= result.get('epv')
 
-                        self.consumer.setData(self.collecteddata)
-                time.sleep(self.interval) 
-            except Exception as e:
-                print("Got exception: ")
-                print(e)
-                time.sleep(self.interval) 
-                continue
+                self.consumer.setData(self.collecteddata)
+                time.sleep(self.interval)
+            else:
+                print("Exiting")
+                break
 
      
 
 
     def shutdown(self):
-        self.running=False
+        self.running = False
         self.consumer.shutdown()
-        self.gpsd.close()
-        self.thread.join()
+        print("KUKSA client shutdown")
+        self.client.close()
+        print("GPSD client shutdown")
+        self.join()
+        print("Shutdown completed")
 
         
 if __name__ == "__main__":
-    config_candidates=['/config/gpsd_feeder.ini', '/etc/gpsd_feeder.ini', os.path.join(scriptDir, 'config/gpsd_feeder.ini')]
-    for candidate in config_candidates:
-        if os.path.isfile(candidate):
-            configfile=candidate
-            break
-    if configfile is None:
-        print("No configuration file found. Exiting")
-        sys.exit(-1)
+    manual_config = argparse.ArgumentParser()
+    manual_config.add_argument("--host", help="Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1", nargs='?' , default="127.0.0.1")
+    manual_config.add_argument("--port", help="Specify the port where too look for KUKSA.val server/databroker; default: 8090", nargs='?' , default="8090")
+    manual_config.add_argument("--protocol", help="If you want to connect to KUKSA.val server specify ws. If you want to connect to KUKSA.val databroker specify grpc; default: ws", nargs='?' , default="ws")
+    manual_config.add_argument("--insecure", help="For KUKSA.val server specify False, for KUKSA.val databroker there is currently no security so specify True; default: False", nargs='?' , default="False")
+    manual_config.add_argument("--certificate", help="Specify the path to your Client.pem file; default: Client.pem", nargs='?' , default="Client.pem")
+    manual_config.add_argument("--cacertificate", help="Specify the path to your CA.pem; default: CA.pem", nargs='?' , default="CA.pem")
+    manual_config.add_argument("--token", help="Specify the path to your JWT token; default: all-read-write.json", nargs='?' , default="all-read-write.json")
+    manual_config.add_argument("--file", help="Specify the path to your config file; default: config/gpsd_feeder.ini", nargs='?' , default="config/gpsd_feeder.ini")
+    manual_config.add_argument("--gpsd_host", help="Specify the host for gpsd to start on; default: 127.0.0.1", nargs='?' , default="127.0.0.1")
+    manual_config.add_argument("--gpsd_port", help="Specify the port for gpsd to start on; default: 2948", nargs='?' , default="2948")
+    manual_config.add_argument("--interval", help="Specify the interval time for feeding gps data; default: 1", nargs='?' , default="1")
+    args = manual_config.parse_args()
+    print(args)
+    if os.path.isfile(args.file):
+        configfile = args.file
+    else:
+        config_object = configparser.ConfigParser()
+        print("No configuration file found. Using default values.")
+        config_object["kuksa_val"] = {
+            "host": args.host,
+            "port": args.port,
+            "protocol": args.protocol,
+            "insecure": args.insecure,
+            "certificate": args.certificate,
+            "cacertificate": args.cacertificate,
+            "token": args.token,
+            "file": args.file,
+        }
+        config_object["gpsd"] = {
+            "interval": args.interval,
+            "host": args.gpsd_host,
+            "port": args.gpsd_port, 
+        }
+        with open('config.ini', 'w') as conf:
+            config_object.write(conf) 
+        configfile = "config.ini"
+
     config = configparser.ConfigParser()
     config.read(configfile)
     
-    client = GPSD_Client(config, Kuksa_Client(config))
+    gpsd_client = GPSDClientThread(config, Kuksa_Client(config))
+    gpsd_client.start()
 
     def terminationSignalreceived(signalNumber, frame):
         print("Received termination signal. Shutting down")
-        client.shutdown()
+        gpsd_client.shutdown()
     signal.signal(signal.SIGINT, terminationSignalreceived)
     signal.signal(signal.SIGQUIT, terminationSignalreceived)
     signal.signal(signal.SIGTERM, terminationSignalreceived)
