@@ -46,15 +46,12 @@ public:
             blocked_(false),
             running_(true),
             is_offered_(false),
-            wiper_sim_(cycle_, sim_auto),
+            wiper_sim_(cycle_),
             offer_thread_(std::bind(&wiper_service::run, this)),
             notify_thread_(std::bind(&wiper_service::notify_th, this))
     {
         pthread_setname_np(offer_thread_.native_handle(), "wiper_run");
         pthread_setname_np(notify_thread_.native_handle(), "wiper_notify");
-
-        // wiper model init
-        wiper_sim_.model_init();
     }
 
     bool init() {
@@ -134,7 +131,7 @@ public:
                 << "] = ";
         std::shared_ptr<vsomeip::payload> its_payload = _request->get_payload();
         its_message << "(" << std::dec << its_payload->get_length() << ")";
-        if (debug > 0) {
+        if (debug > 1) {
             its_message << " [";
             for (int i=0; i<its_payload->get_length(); i++) {
                 its_message
@@ -319,37 +316,53 @@ public:
             std::unique_lock<std::mutex> its_lock(notify_mutex_);
             while (!is_offered_ && running_)
                 notify_condition_.wait(its_lock);
+
+            //auto now = std::chrono::system_clock::now();
+            auto event_ts = 0;//std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+            auto sim_step = 500;
+            if (sim_step > cycle_) {
+                sim_step = cycle_;
+            }
             while (is_offered_ && running_)
             {
                 // run model step
+                bool was_cycle_ending = wiper_sim_.is_cycle_ending();
                 wiper_sim_.model_step(event);
-                if (debug > 0) {
-                    std::printf("[EVENT] Seq:%3d, ActualPos: %f, DriveCurrent: %f\n",
-                            (int)event.sequenceCounter, event.data.ActualPosition, event.data.DriveCurrent);
+                std::this_thread::sleep_for(std::chrono::milliseconds(sim_step)); // run cycle 10 ms
+                event_ts += sim_step; // FIXME: use ts delta
+                if (!is_offered_ || !running_) {
+                    break;
                 }
-
-                if (serialize_wiper_event(event, (uint8_t*)&its_data, its_size)) {
-                    std::lock_guard<std::mutex> its_lock(payload_mutex_);
-                    payload_->set_data(its_data, its_size);
+                if (event_ts >= cycle_ || was_cycle_ending != wiper_sim_.is_cycle_ending()) {
                     if (debug > 1) {
-                        std::printf("### app.notify(%04x.%04x/%04x) -> %lu bytes\n",
-                                WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, its_size);
+                        std::printf("[EVENT] ActualPos:%6.2f, DriveCurrent:%5.2f, Wiping:%d, CycEnd:%d, PosReach:%d, Seq:%3d, [%5.3f]\n",
+                                event.data.ActualPosition, event.data.DriveCurrent,
+                                event.data.isWiping, event.data.isEndingWipeCycle, event.data.isPositionReached,
+                                (int)event.sequenceCounter, (float)event_ts / 1000.0f);
                     }
-                    if (debug > 2) {
-                        std::cout << "### Notify payload: "
-                                << bytes_to_string(its_data, its_size)
-                                << "]" << std::endl;
-                    }
-                    app_->notify(WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, payload_);
-                }
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(cycle_));
+                    event_ts = 0;
+                    if (serialize_wiper_event(event, (uint8_t*)&its_data, its_size)) {
+                        std::lock_guard<std::mutex> its_lock(payload_mutex_);
+                        payload_->set_data(its_data, its_size);
+                        if (debug > 2) {
+                            std::printf("### app.notify(%04x.%04x/%04x) -> %lu bytes\n",
+                                    WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, its_size);
+                        }
+                        if (debug > 3) {
+                            std::cout << "### Notify payload: "
+                                    << bytes_to_string(its_data, its_size)
+                                    << "]" << std::endl;
+                        }
+                        app_->notify(WIPER_SERVICE_ID, WIPER_INSTANCE_ID, WIPER_EVENT_ID, payload_);
+                    }
+                }
             }
         }
     }
 
-
-    void notify_th_old() {
+#if 0
+    void notify_th_random() {
         std::shared_ptr<vsomeip::message> its_message
             = vsomeip::runtime::get()->create_request(use_tcp_);
 
@@ -471,6 +484,7 @@ public:
             }
         }
     }
+#endif
 
 private:
     std::shared_ptr<vsomeip::application> app_;
@@ -499,7 +513,6 @@ private:
     wiper_simulator wiper_sim_;
 };
 
-// #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
 wiper_service *its_sample_ptr(nullptr);
 
 void handle_signal(int _signal) {
@@ -511,7 +524,7 @@ void handle_signal(int _signal) {
 
 int main(int argc, char **argv) {
     bool use_tcp = false;
-    uint32_t cycle = 1000; // default 1s
+    uint32_t cycle = 100; // default 1s
 
     std::string tcp_enable("--tcp");
     std::string udp_enable("--udp");
@@ -533,6 +546,11 @@ int main(int argc, char **argv) {
 
     if (vsomeip::DEFAULT_MAJOR != 0) {
         std::cout << "# Warning: compiled with vsomeip::DEFAULT_MAJOR=" << std::dec << (int)vsomeip::DEFAULT_MAJOR << std::endl;
+    }
+
+    const char* cycle_env= ::getenv("CYCLE");
+    if (cycle_env) {
+        cycle = atoi(cycle_env);
     }
     for (int i = 1; i < argc; i++) {
         if (tcp_enable == argv[i]) {

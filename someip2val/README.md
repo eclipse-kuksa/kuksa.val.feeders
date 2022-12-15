@@ -6,7 +6,7 @@
     - [Building someip2val](#building-someip2val)
   - [Configuration](#configuration)
     - [vsomeip specific Configuration](#vsomeip-specific-configuration)
-      - [Environment variables:](#environment-variables)
+      - [Environment variables for vsomeip:](#environment-variables-for-vsomeip)
       - [Wiper configuration files:](#wiper-configuration-files)
       - [Config file modifications:](#config-file-modifications)
   - [Runing someip example and someip2val feeder](#runing-someip-example-and-someip2val-feeder)
@@ -16,21 +16,23 @@
 
 # SOME/IP integration in Docker containers
 
-Example vsomeip dockerisation is described in details [here](docker/README.md)
+Running default vsomeip examples in containers is described in details [here](docker/README.md)
 
 # SOME/IP to Kuksa.VAL Feeder
 
 ## Overview
 
 SOME/IP feeder is [vsomeip app](https://github.com/COVESA/vsomeip/), that subscribes for specific SOME/IP Events, parses its payload and feeds some of the data to KUKSA.VAL Databroker.
+It also provides an example SOME/IP request / response handling.
 
 - [src/someip_feeder](./src/someip_feeder/) is the main SOME/IP to KUKSA.VAL Databroker adapter.
 - [src/lib/broker_feeder](./src/lib/broker_feeder/) is provinding KUKSA.VAL Databroker integration.
 - [src/lib/someip_client](./src/lib/someip_client/) is provinding generic SOME/IP Client implementation (generic implementation, does not depend on wiper).
-- [src/lib/wiper_poc](./src/lib/wiper_poc/) is provinding wiper specific implementation (someip config, serialization, deserialization of events and data structures)
+- [src/lib/wiper_poc](./src/lib/wiper_poc/) is provinding wiper specific implementation (someip config, serialization, deserialization of events and data structures).
 
 - [examples/wiper_service/wiper_server.cc](./examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Service for sending some serialized example Wiper events.
-- [examples/wiper_service/wiper_server.cc](./examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Client for subscribing and parsing Wiper event payload. (no databroker integration)
+- [examples/wiper_service/wiper_server.cc](./examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Client for subscribing and parsing Wiper event payload and example Request/Response client for Wiper VSS service.
+- [examples/wiper_service/wiper_sim.cc](./examples/wiper_service/wiper_sim.cc): an example simulation of a Wiper service.
 - [patches](./patches): Contains vsomeip patches (master branch), that have not been pushed to upstream yet.
 
 ## Setup Development environment
@@ -50,16 +52,9 @@ SOME/IP feeder is [vsomeip app](https://github.com/COVESA/vsomeip/), that subscr
     ``` bash
     ./vscode-conan.sh
     ```
-1. Install and start KUKSA Databroker
+1. Install and start KUKSA Databroker (version with collector interface supporting `SubscribeActuatorTargets`)
     ``` bash
-    # if running on x86_64 host:
-    wget https://github.com/eclipse/kuksa.val/releases/download/databroker-v0.17.0/databroker_x86_64.tar.gz
-    # if running on arm 64 host (rpi)
-    wget https://github.com/eclipse/kuksa.val/releases/download/databroker-v0.17.0/databroker_aarch64.tar.gz
-    # extract needed binaries
-    tar xzvf databroker_x86_64.tar.gz --strip-components 3
-    # start databroker
-    ./databroker
+    docker run --rm -it -p 55555:55555/tcp ghcr.io/boschglobal/kuksa.val/databroker:0.0.2
     ```
 
 ### Building someip2val
@@ -81,16 +76,20 @@ vsomeip requires a combination of json config file + environment variables
 
 ### vsomeip specific Configuration
 
-#### Environment variables:
+#### Environment variables for vsomeip:
 - `VSOMEIP_CONFIGURATION` : path to vsomeip config json file
 - `VSOMEIP_APPLICATION_NAME`: vsomeip application name, must be consistent with json config file `.applications[].name`
+**NOTE**: Those variables are already set in provided `setup-*.sh` scripts.
 
 #### Wiper configuration files:
 - Wiper Service Config: [config/someip_wiper_service.json](./config/someip_wiper_service.json)
-- Wiper Client / someip2val Config: [config/someip_wiper_client.json](./config/someip_wiper_client.json)
-- Wiper Client / someip2val (Proxy) [config/someip_wiper_client-proxy.json](./config/someip_wiper_client-proxy.json)
+- Wiper Client Config: [config/someip_wiper_client.json](./config/someip_wiper_client.json)
+- Wiper Client Config (Proxy) [config/someip_wiper_client-proxy.json](./config/someip_wiper_client-proxy.json)
+- Someip Feeder Config: [config/someip_feeder.json](./config/someip_feeder.json)
+- Someip Feeder Config (Proxy): [config/someip_feeder-proxy.json](./config/someip_feeder-proxy.json)
 
-**NOTE**: Proxy config should be used if Wiper Service is running on the same host with someip2val feeder. It has wiper service app as router, and client is proxy to local wiper service.
+**NOTE**: With vsomeip it is not possible to have multiple routing applications running on the same host, so in Proxy setup, Wiper service is configured as routing app and Proxy clients are configured to route through Wiper Service.
+In case two hosts (VMs) are available, Proxy configs are not needed, then one host should run the service and the other - client config.
 
 #### Config file modifications:
 In order to use non-proxy mode on 2 network hosts, you have to modify the `.unicast` address in vsomeip config file, unfortunately it does not support hostnames, so there are some helper scripts for setting up the environment and replacing hostnames with `jq`

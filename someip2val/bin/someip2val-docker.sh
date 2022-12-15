@@ -15,31 +15,35 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/config/someip_feeder.json" ]; then
-    VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/someip_feeder.json"
-else
-    if [ -f "/src/config/someip_feeder.json" ]; then
-        VSOMEIP_CONFIGURATION="/src/config/someip_feeder.json"
+# allow customization of all environment variables from host
+
+if [ -z "$VSOMEIP_CONFIGURATION" ]; then
+    if [ -f "$SCRIPT_DIR/config/someip_feeder.json" ]; then
+        VSOMEIP_CONFIGURATION="$SCRIPT_DIR/config/someip_feeder.json"
+    else
+        if [ -f "/src/config/someip_feeder.json" ]; then
+            VSOMEIP_CONFIGURATION="/src/config/someip_feeder.json"
+        fi
     fi
+    export VSOMEIP_CONFIGURATION
 fi
-export VSOMEIP_CONFIGURATION
 
-export VSOMEIP_APPLICATION_NAME="someip_feeder"
+[ -z "$VSOMEIP_APPLICATION_NAME" ] && export VSOMEIP_APPLICATION_NAME="someip_feeder"
 
-export SOMEIP_CLI_SERVICE="0x60D0"
-export SOMEIP_CLI_INSTANCE="0x0001"
-export SOMEIP_CLI_EVENTGROUP="0x0064"
-export SOMEIP_CLI_EVENT="0x8001"
-export SOMEIP_CLI_MAJOR=1
-export SOMEIP_CLI_MINOR=0
+[ -z "$SOMEIP_CLI_SERVICE" ] && export SOMEIP_CLI_SERVICE="0x60D0"
+[ -z "$SOMEIP_CLI_INSTANCE" ] && export SOMEIP_CLI_INSTANCE="0x0001"
+[ -z "$SOMEIP_CLI_EVENTGROUP" ] && export SOMEIP_CLI_EVENTGROUP="0x0064"
+[ -z "$SOMEIP_CLI_EVENT" ] && export SOMEIP_CLI_EVENT="0x8001"
+[ -z "$SOMEIP_CLI_MAJOR" ] && export SOMEIP_CLI_MAJOR=1
+[ -z "$SOMEIP_CLI_MINOR" ] && export SOMEIP_CLI_MINOR=0
 
 # request/response service
-export SOMEIP_CLI_REQ=1
-export SOMEIP_CLI_REQ_SERVICE="0x6123"
-export SOMEIP_CLI_REQ_INSTANCE="0x000b"
-export SOMEIP_CLI_REQ_METHOD="0x0007"
-export SOMEIP_CLI_REQ_MAJOR=1
-export SOMEIP_CLI_REQ_MINOR=0
+[ -z "$SOMEIP_CLI_REQ" ] && export SOMEIP_CLI_REQ=1
+[ -z "$SOMEIP_CLI_REQ_SERVICE" ] && export SOMEIP_CLI_REQ_SERVICE="0x6123"
+[ -z "$SOMEIP_CLI_REQ_INSTANCE" ] && export SOMEIP_CLI_REQ_INSTANCE="0x000b"
+[ -z "$SOMEIP_CLI_REQ_METHOD" ] && export SOMEIP_CLI_REQ_METHOD="0x0007"
+[ -z "$SOMEIP_CLI_REQ_MAJOR" ] && export SOMEIP_CLI_REQ_MAJOR=1
+[ -z "$SOMEIP_CLI_REQ_MINOR" ] && export SOMEIP_CLI_REQ_MINOR=0
 
 if [ -z "$SOMEIP_CLI_UNICAST" ]; then
 	SOMEIP_CLI_UNICAST="$(hostname -I | cut -d ' ' -f 1)"
