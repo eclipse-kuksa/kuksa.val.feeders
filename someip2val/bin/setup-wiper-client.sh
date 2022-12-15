@@ -68,5 +68,5 @@ fi
 [ -d "$SCRIPT_DIR/../lib" ] && export LD_LIBRARY_PATH="$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"
 
 echo
-echo "Execute: ./wiper_client --mode 2 --pos 110.0 --freq 40"
+echo "Execute: ./wiper_client --mode 2 --freq 40 --pos 110.0"
 echo

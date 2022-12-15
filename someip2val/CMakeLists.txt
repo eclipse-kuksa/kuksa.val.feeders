@@ -96,6 +96,7 @@ install(PROGRAMS
   ./bin/setup-someip2val-proxy.sh
   ./bin/setup-someip2val.sh
   ./bin/setup-wiper-service.sh
+  ./bin/setup-wiper-client.sh
   ./bin/setup-wiper-client-proxy.sh
   ./bin/setup-wiper-service.sh
   DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"

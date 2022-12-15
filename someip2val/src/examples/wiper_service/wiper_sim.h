@@ -14,8 +14,9 @@
 #ifndef VSOMEIP_WIPER_SIM_H
 #define VSOMEIP_WIPER_SIM_H
 
-#include <random>
+#include <chrono>
 #include <mutex>
+#include <random>
 
 #include "wiper_poc.h"
 
@@ -23,31 +24,35 @@ namespace sdv {
 namespace someip {
 namespace wiper {
 
-const float default_pos_step = 3.13f;
 const float default_current = 10.0f;
 
 class wiper_simulator {
 
 public:
-    wiper_simulator(uint32_t _cycle, bool _sim_active);
-
-    void model_init();
+    wiper_simulator(uint32_t _cycle);
 
     void model_step(t_Event& event);
 
     void model_set(const t_WiperRequest &req);
+
+    bool is_cycle_ending();
+
+protected:
+    void model_init();
 
 private:
     int model_counter_;
     uint32_t cycle_;
     t_Event event_;
 
-    bool  sim_active_;
     float sim_pos_step_;
     bool  sim_wiping_;
+    bool  sim_cylce_ending_;
+    int   sim_cycle_ending_count_;
     int   sim_frequency_;
     float sim_target_pos_;
-    float sim_model_step_;
+    int64_t sim_set_ts_;
+    int64_t sim_ts_;
 
     std::random_device rd_; // Will be used to obtain a seed for the random number engine
     std::mt19937 gen_;
