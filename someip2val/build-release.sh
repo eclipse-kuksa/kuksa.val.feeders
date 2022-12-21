@@ -44,15 +44,20 @@ cmake -E make_directory "$BUILD_DIR"
 
 # install last known good boost version before conan v2 mess...
 ### experimental stuff
+export CONAN_REVISIONS_ENABLED=1
+
+echo "########## Conan Info #########"
+conan --version
+conan info .
+echo "###############################"
+
 # conan install -r conancenter boost/1.72.0@#d9cf09c1be88fc9a3b8fbfef409e28e2 -pr:b=default -pr:h=default --update --build missing --build outdated
-# export CONAN_REVISIONS_ENABLED=1
 
 conan install -if="$BUILD_DIR" $CONAN_OPT --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 # conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 
 echo "########## Conan Info #########"
 conan --version
-conan info .
 echo "###############################"
 
 

@@ -38,6 +38,8 @@ PROJ_DIR="$1"
 BUILD_DIR="$2"
 [ -z "$BUILD_DIR" ] && BUILD_DIR="$PROJ_DIR/build"
 
+export CONAN_REVISIONS_ENABLED=1
+
 conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="$SCRIPT_DIR/toolchains/target_x86_64_Debug" "$SCRIPT_DIR"
 [ $? -ne 0 ] && echo "conan install failed!" && exit 1
 
