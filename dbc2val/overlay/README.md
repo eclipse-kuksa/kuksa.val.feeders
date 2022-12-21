@@ -27,10 +27,16 @@ A functionally equal mapping could possibly be like this:
 Vehicle.Cabin.Seat.Row1.Pos2.IsOccupied:
   type: actuator
   datatype: boolean
-  dbc: VCFRONT_passengerPresent
-  dbc_mapping: [{1:true},{0:false}]
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 1000
+  dbc:
+    signal: VCFRONT_passengerPresent
+    transform:
+      mapping:
+        - from: 0
+          to: false
+        - from: 1
+          to: true
+    changetype: ON_CHANGE
+    interval_ms: 1000
 ```
 
 Which could (theoretically, see below,) be called like:
@@ -42,27 +48,26 @@ Which could (theoretically, see below,) be called like:
 This gives this resulting JSON:
 
 ```
-                      "IsOccupied": {
+"IsOccupied": {
                         "datatype": "boolean",
-                        "dbc": "VCFRONT_passengerPresent",
-                        "dbc_changetype": "ON_CHANGE",
-                        "dbc_interval_ms": 1000,
-                        "dbc_mapping": [
-                          {
-                            "$file_name$": "overlay.vspec",
-                            "$line$": 5,
-                            "$name$": "1:true"
-                          },
-                          {
-                            "$file_name$": "overlay.vspec",
-                            "$line$": 5,
-                            "$name$": "0:false"
+                        "dbc": {
+                          "changetype": "ON_CHANGE",
+                          "interval_ms": 1000,
+                          "signal": "VCFRONT_passengerPresent",
+                          "transform": {
+                            "mapping": [
+                              {
+                                "from": 0,
+                                "to": false
+                              },
+                              {
+                                "from": 1,
+                                "to": true
+                              }
+                            ]
                           }
-                        ],
-                        "description": "Does the seat have a passenger in it.",
-                        "type": "actuator",
-                        "uuid": "4d0cdff266e45dd2a8a878b572d34b7e"
-                      },
+                        },
+
 ```
 
 Notes:
@@ -74,42 +79,6 @@ Notes:
   I.e. if you specify 1000, you want to get an update about every 1000 ms, you do not want it every 2000 ms.
   For `ON_CHANGE` ita minimum interval.
 
-### Alternative representation
-We could also have a tree-like representation, similar to what is used today
-
-
-```
-Vehicle.Cabin.Seat.IsOccupied:
-  type: actuator
-  datatype: boolean
-  dbc: VCFRONT_passengerPresent
-  dbc_mapping:
-    value:
-      "1": true
-      "0": false
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 1000
-```
-
-Which in generated json would result in something like:
-
-```
-  "dbc": "VCFRONT_passengerPresent",
-  "dbc_interval_ms": 1000,
-  "dbc_mapping": {
-     "$file_name$": "overlay.vspec",
-     "$line$": 5,
-     "value": {
-       "$file_name$": "overlay.vspec",
-       "$line$": 6,
-       "0": false,
-       "1": true
-   }
-```
-
-An important limitation in vss-tools is that keys cannot be integers, i.e. it is not possible to specify `1: true`,
-you must specify `"1": true`. String values must be quoted, as they otherwise due to Yaml interpretation may be interpreted wrongly.
-An example is `off` which is a synonym for `false`in Yaml, so `dbc: off` may be generated as `dbc: false`. To prevent this quotes shall preferably be used for string literals, like `dbc: "off"`
 
 ## Example 2 -int with math formula
 
@@ -140,10 +109,13 @@ A functionally equal mapping could possibly be like this:
 Vehicle.Chassis.SteeringWheel.Angle:
   type: sensor
   datatype: int16
-  dbc: SteeringAngle129
-  dbc_math: "floor(x+0.5)"
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 100
+  dbc:
+    signal: SteeringAngle129
+    transform:
+      mapping:
+        - math: "floor(x+0.5)
+    changetype: ON_CHANGE
+    interval_ms: 100
 ```
 
 ## Example 3 - DBC enum to VSS int
@@ -178,10 +150,20 @@ A functionally equal mapping could possibly be like this (using ENUM rather than
 Vehicle.Powertrain.Transmission.CurrentGear:
   type: sensor
   datatype: int16
-  dbc: SteeringAngle129
-  dbc_mapping: [{DI_GEAR_D:1},{DI_GEAR_P:0},{DI_GEAR_INVALID:0},{DI_GEAR_R:-1}]
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 100
+  dbc:
+    signal: DI_gear
+    transform:
+      mapping:
+        - from: DI_GEAR_D
+          to: 1
+        - from: DI_GEAR_P
+          to: 0
+        - from: DI_GEAR_INVALID
+          to: 0
+        - from: DI_GEAR_R
+          to: -1
+    changetype: ON_CHANGE
+    interval_ms: 100
 ```
 
 ## Example 4 - Mapping one DBC signal to multiples VSS signals
@@ -226,19 +208,31 @@ A functionally equal mapping needs to repeated for every VSS signal.
 Vehicle.Chassis.Axle.Row1.Wheel.Left.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc: VCFRONT_brakeFluidLevel
-  dbc_mapping: [{LOW:true},{NORMAL:false}}]
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 1000
+  dbc:
+    signal: VCFRONT_brakeFluidLevel
+    transform:
+      mapping:
+        - from: LOW
+          to: true
+        - from: NORMAL
+          to: false
+    changetype: ON_CHANGE
+    interval_ms: 1000
   
   
 Vehicle.Chassis.Axle.Row1.Wheel.Right.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc: VCFRONT_brakeFluidLevel
-  dbc_mapping: [{LOW:true},{NORMAL:false}}]
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 1000
+  dbc:
+    signal: VCFRONT_brakeFluidLevel
+    transform:
+      mapping:
+        - from: LOW
+          to: true
+        - from: NORMAL
+          to: false
+    changetype: ON_CHANGE
+    interval_ms: 1000
   
   ... (2 signals omitted)
 ```
@@ -251,10 +245,16 @@ Alternatively, one could here make an overlay before expansion (only method curr
 Vehicle.Chassis.Axle.Wheel.Brake.IsFluidLevelLow:
   type: sensor
   datatype: boolean
-  dbc: VCFRONT_brakeFluidLevel
-  dbc_mapping: [{LOW:true},{NORMAL:false}}]
-  dbc_changetype: ON_CHANGE
-  dbc_interval_ms: 1000
+  dbc:
+    signal: VCFRONT_brakeFluidLevel
+    transform:
+      mapping:
+        - from: LOW
+          to: true
+        - from: NORMAL
+          to: false
+    changetype: ON_CHANGE
+    interval_ms: 1000
   
 
 ```
