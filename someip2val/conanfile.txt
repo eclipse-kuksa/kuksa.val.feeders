@@ -14,11 +14,12 @@
 
 [requires]
 grpc/1.38.0
-boost/1.72.0
+boost/1.72.0@#d9cf09c1be88fc9a3b8fbfef409e28e2
 zlib/1.2.13
 
 [build_requires]
 grpc/1.38.0 # Is needed in the build context to run generate code from proto files
+#zlib/1.2.12
 
 [generators]
 cmake_find_package
