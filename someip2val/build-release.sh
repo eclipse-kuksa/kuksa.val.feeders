@@ -33,12 +33,28 @@ BUILD_DIR="$2"
 [ -z "$BUILD_DIR" ] && BUILD_DIR="$SCRIPT_DIR/target/$TARGET_ARCH/release"
 
 [ "$VERBOSE" = "1" ] && set -x
+if [ "$FORCE" = "1" ]; then
+	export CONAN_OPT="$CONAN_OPT --build"
+else
+	export CONAN_OPT="$CONAN_OPT --build=missing"
+fi
 
 set -e
 cmake -E make_directory "$BUILD_DIR"
-# pip3 install -U conan
-# conan install --update ...
-conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
+
+# install last known good boost version before conan v2 mess...
+### experimental stuff
+# conan install -r conancenter boost/1.72.0@#d9cf09c1be88fc9a3b8fbfef409e28e2 -pr:b=default -pr:h=default --update --build missing --build outdated
+# export CONAN_REVISIONS_ENABLED=1
+
+conan install -if="$BUILD_DIR" $CONAN_OPT --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
+# conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
+
+echo "########## Conan Info #########"
+conan --version
+conan info .
+echo "###############################"
+
 
 cd "$BUILD_DIR" || exit 1
 
