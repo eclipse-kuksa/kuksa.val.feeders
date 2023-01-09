@@ -48,27 +48,22 @@ include(FetchContent)
 # we want signal handling enabled for vsomeip...
 # add_definitions(-DVSOMEIP_ENABLE_SIGNAL_HANDLING=1)
 
-MESSAGE(STATUS "FetchContent: vsomeip...")
+set(FETCHCONTENT_QUIET "OFF")
+MESSAGE(STATUS "FetchContent: patching from ${CMAKE_SOURCE_DIR}/patches/ ...")
 FetchContent_Declare(
   vsomeip3
   GIT_REPOSITORY    https://github.com/COVESA/vsomeip.git
   GIT_TAG           master
   # GIT_TAG           3.1.20.3
-  PATCH_COMMAND     git apply --ignore-whitespace
-                        "${CMAKE_SOURCE_DIR}/patches/000-cmake-reduce-gcc-warnings.patch"
-                        "${CMAKE_SOURCE_DIR}/patches/001-vsomeip-logger-fixes.patch"
-                        "${CMAKE_SOURCE_DIR}/patches/002-vsomeip-default-major-change.patch"
-                        # "${CMAKE_SOURCE_DIR}/patches/003-vsomeip-application-debugs.patch"
+  PATCH_COMMAND     git apply --reject --ignore-whitespace --verbose --stat --apply
+                      "${CMAKE_SOURCE_DIR}/patches/000-cmake-reduce-gcc-warnings.patch"
+                      "${CMAKE_SOURCE_DIR}/patches/001-vsomeip-logger-fixes.patch"
+                      "${CMAKE_SOURCE_DIR}/patches/002-vsomeip-default-major-change.patch"
   GIT_SHALLOW       ON
-  GIT_PROGRESS      TRUE
+  GIT_PROGRESS      OFF
 )
+MESSAGE(STATUS "FetchContent: MakeAvailable(vsomeip3)...")
 FetchContent_MakeAvailable(vsomeip3)
-
-# exclude vsomeip files from installation, commented as we need built libraries
-# if(IS_DIRECTORY "${vsomeip3_SOURCE_DIR}")
-#   message(STATUS "Excluding vsomeip3 sources: ${vsomeip3_SOURCE_DIR}")
-#   set_property(DIRECTORY ${vsomeip3_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
-# endif()
 
 # add sources after vsomeip3 is populated
 add_subdirectory(src)
