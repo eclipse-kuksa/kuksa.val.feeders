@@ -19,6 +19,11 @@ on:
       - ".github/workflows/someip2val_build.yml"
       - "someip2val/**"
   workflow_dispatch:
+    inputs:
+      build_binaries:
+        description: 'Build Binaries'
+        required: false
+        default: 'false'
 
 jobs:
 
@@ -27,9 +32,10 @@ jobs:
     secrets: inherit
 
   build:
+    name: Build Binaries
+    if: github.event.inputs.build_binaries == 'true'
     # reduce runtime requirements from ubuntu, ubuntu-18.04 fails for aarch64
     runs-on: ubuntu-20.04
-    name: Build
     strategy:
       matrix:
         target-arch: [x86_64, aarch64]
