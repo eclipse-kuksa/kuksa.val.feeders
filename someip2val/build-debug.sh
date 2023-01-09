@@ -27,7 +27,17 @@ BUILD_DIR="$2"
 [ -z "$BUILD_DIR" ] && BUILD_DIR="$SCRIPT_DIR"/target/"$TARGET_ARCH"/debug
 
 cmake -E make_directory "$BUILD_DIR"
-# build with dependencies of build_type Release
+
+# install last known good boost version before conan v2 mess...
+### experimental stuff
+export CONAN_REVISIONS_ENABLED=1
+
+echo "########## Conan Info #########"
+conan --version
+conan info .
+echo "###############################"
+
+# build with dependencies of build_type Debug
 conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 cd "$BUILD_DIR" || exit
 # shellcheck disable=SC1091

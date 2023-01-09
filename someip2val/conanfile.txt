@@ -13,9 +13,9 @@
 #*******************************************************************************/
 
 [requires]
-grpc/1.38.0
+grpc/1.38.0@#a93eb68eaa39bd69ddb2c0d85e6eb490
 boost/1.72.0@#d9cf09c1be88fc9a3b8fbfef409e28e2
-zlib/1.2.13
+zlib/1.2.13@#13c96f538b52e1600c40b88994de240f
 
 [build_requires]
 grpc/1.38.0 # Is needed in the build context to run generate code from proto files

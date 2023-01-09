@@ -1,14 +1,15 @@
 - [SOME/IP integration in Docker containers](#someip-integration-in-docker-containers)
 - [SOME/IP to Kuksa.VAL Feeder](#someip-to-kuksaval-feeder)
   - [Overview](#overview)
+  - [Module summary](#module-summary)
   - [Setup Development environment](#setup-development-environment)
     - [Prerequisites](#prerequisites)
     - [Building someip2val](#building-someip2val)
   - [Configuration](#configuration)
     - [vsomeip specific Configuration](#vsomeip-specific-configuration)
-      - [Environment variables for vsomeip:](#environment-variables-for-vsomeip)
-      - [Wiper configuration files:](#wiper-configuration-files)
-      - [Config file modifications:](#config-file-modifications)
+      - [Environment variables for vsomeip](#environment-variables-for-vsomeip)
+      - [Wiper configuration files](#wiper-configuration-files)
+      - [Config file modifications](#config-file-modifications)
   - [Runing someip example and someip2val feeder](#runing-someip-example-and-someip2val-feeder)
     - [Local mode (single host)](#local-mode-single-host)
     - [UDP mode (2 hosts)](#udp-mode-2-hosts)
@@ -22,18 +23,20 @@ Running default vsomeip examples in containers is described in details [here](do
 
 ## Overview
 
-SOME/IP feeder is [vsomeip app](https://github.com/COVESA/vsomeip/), that subscribes for specific SOME/IP Events, parses its payload and feeds some of the data to KUKSA.VAL Databroker.
-It also provides an example SOME/IP request / response handling.
+[SOME/IP](https://www.autosar.org/fileadmin/standards/foundation/1-4/AUTOSAR_PRS_SOMEIPProtocol.pdf) is an automotive communication protocol which supports remote procedure calls, event notifications, service discovery. SOME/IP messages are sent as TCP/UDP unicast/multicast packets, but it is also possible to use local (Unix) endpoints.
 
-- [src/someip_feeder](./src/someip_feeder/) is the main SOME/IP to KUKSA.VAL Databroker adapter.
-- [src/lib/broker_feeder](./src/lib/broker_feeder/) is provinding KUKSA.VAL Databroker integration.
-- [src/lib/someip_client](./src/lib/someip_client/) is provinding generic SOME/IP Client implementation (generic implementation, does not depend on wiper).
-- [src/lib/wiper_poc](./src/lib/wiper_poc/) is provinding wiper specific implementation (someip config, serialization, deserialization of events and data structures).
+SOME/IP feeder is [COVESA / vsomeip](https://github.com/COVESA/vsomeip/) application, that subscribes for specific "Wiper" SOME/IP Events, parses the payload and feeds values to KUKSA.VAL Databroker. It also provides an example "Wiper" SOME/IP request handling for setting wiper parameters.
 
+## Module summary
+- [src/someip_feeder/](./src/someip_feeder/) is the main SOME/IP to KUKSA.VAL Databroker adapter.
+- [src/lib/broker_feeder/](./src/lib/broker_feeder/) is provinding KUKSA.VAL Databroker integration.
+- [src/lib/someip_client/](./src/lib/someip_client/) is provinding generic SOME/IP Client implementation (generic implementation, does not depend on wiper).
+- [src/lib/wiper_poc/](./src/lib/wiper_poc/) is provinding wiper specific implementation (someip config, serialization, deserialization of events and data structures).\
+**NOTE**: Check [wiper_poc.h](src/lib/wiper_poc/wiper_poc.h) for SOME/IP Event definitions (`struct t_Event`), and SOME/IP Request (`struct t_WiperRequest`)
 - [examples/wiper_service/wiper_server.cc](./examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Service for sending some serialized example Wiper events.
-- [examples/wiper_service/wiper_server.cc](./examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Client for subscribing and parsing Wiper event payload and example Request/Response client for Wiper VSS service.
+- [examples/wiper_service/wiper_client.cc](./examples/wiper_service/wiper_client.cc): an example SOME/IP Wiper Client for subscribing and parsing Wiper event payload and example Request/Response client for Wiper VSS service.
 - [examples/wiper_service/wiper_sim.cc](./examples/wiper_service/wiper_sim.cc): an example simulation of a Wiper service.
-- [patches](./patches): Contains vsomeip patches (master branch), that have not been pushed to upstream yet.
+- [patches/](./patches/): Contains vsomeip patches (master branch), that have not been pushed to upstream yet.
 
 ## Setup Development environment
 
@@ -48,6 +51,12 @@ It also provides an example SOME/IP request / response handling.
     sudo apt-get install -y python3 python3-pip
     pip3 install conan
     ```
+    **NOTE:** Sometimes latest conan recipe revisions are broken, but the local build succeeds using cached older revision. If build fails on CI local conan cache could be cleared to reproduce the error. Also latest recipes may require newer conan version.
+    ``` bash
+    rm -rf ~/.conan/data
+    pip3 install -U conan
+    ```
+    Last known working revisions are hardcoded in [conanfile.txt](./conanfile.txt) [requires].
 1. Install [VS Code](https://code.visualstudio.com/download). To setup proper conan environment in vs code, launch vscode using:
     ``` bash
     ./vscode-conan.sh
@@ -65,10 +74,24 @@ There are scripts for building release and debug versions of someip2val feeder, 
 cd someip2val
 ./build-release.sh <arch>
 ```
+**NOTE:** Use `rpi` when building on a Raspberry Pi.
+Scripts generate `someip2val-<debug|release>-<arch>.tar` archives.
 
-*NOTE:* Use `rpi` when building on a Raspberry Pi.
+There is also a script for exporting OCI container images (or import them locally for testing):
+```
+./docker-build.sh [OPTIONS] TARGETS
 
-Scripts generate `someip2val-<debug|release>-<arch>.tar` archives
+Standalone build helper for someip-feeder container.
+
+OPTIONS:
+  -l, --local      local docker import (does not export tar)
+  -v, --verbose    enable plain docker output and disable cache
+      --help       show help
+
+TARGETS:
+  x86_64|amd64, aarch64|amd64    Target arch to build for, if not set - defaults to multiarch
+```
+**NOTE:** This script can't handle multi-arch images!
 
 ## Configuration
 
@@ -76,12 +99,18 @@ vsomeip requires a combination of json config file + environment variables
 
 ### vsomeip specific Configuration
 
-#### Environment variables for vsomeip:
-- `VSOMEIP_CONFIGURATION` : path to vsomeip config json file
-- `VSOMEIP_APPLICATION_NAME`: vsomeip application name, must be consistent with json config file `.applications[].name`
-**NOTE**: Those variables are already set in provided `setup-*.sh` scripts.
+vsomeip library uses a combination of environment variables and config json files that must be set correctly or binaries won't work.
+You can test vsomeip services in a "local" mode (running on a single Linux host, using Unix sockets for communication) or in "normal" mode, where 2 different hosts are required (e.g. wiper service running on the 1st host and someip2val feeder running on the 2nd host).
 
-#### Wiper configuration files:
+**NOTE:** Multicast config (`service-discovery`) for both services must be matching and multicast packages between the hosts must be enabled, also unicast messages between hosts must be possible (both hosts in the same network).
+
+#### Environment variables for vsomeip
+- `VSOMEIP_CONFIGURATION`: path to vsomeip config json file.
+- `VSOMEIP_APPLICATION_NAME`: vsomeip application name, must be consistent with json config file `.applications[].name`
+
+**NOTE**: Those variables are already set (and validated) in provided `./bin/setup-*.sh` scripts.
+
+#### Wiper configuration files
 - Wiper Service Config: [config/someip_wiper_service.json](./config/someip_wiper_service.json)
 - Wiper Client Config: [config/someip_wiper_client.json](./config/someip_wiper_client.json)
 - Wiper Client Config (Proxy) [config/someip_wiper_client-proxy.json](./config/someip_wiper_client-proxy.json)
@@ -91,7 +120,7 @@ vsomeip requires a combination of json config file + environment variables
 **NOTE**: With vsomeip it is not possible to have multiple routing applications running on the same host, so in Proxy setup, Wiper service is configured as routing app and Proxy clients are configured to route through Wiper Service.
 In case two hosts (VMs) are available, Proxy configs are not needed, then one host should run the service and the other - client config.
 
-#### Config file modifications:
+#### Config file modifications
 In order to use non-proxy mode on 2 network hosts, you have to modify the `.unicast` address in vsomeip config file, unfortunately it does not support hostnames, so there are some helper scripts for setting up the environment and replacing hostnames with `jq`
 - Environment setup for Wiper Service: [./bin/setup-wiper-service.sh](./bin/setup-wiper-service.sh)
 - Environment setup for Wiper Client: [./bin/setup-someip2val.sh](./bin/setup-someip2val.sh)
