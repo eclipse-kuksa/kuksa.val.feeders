@@ -80,11 +80,18 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Check Docker setup
+        env:
+          OUT_HAVE_SECRETS: ${{ needs.checkrights.outputs.have_secrets }}
+          OUT_REGISTRY: ${{ needs.checkrights.outputs.registry }}
+          OUT_USER_NAME: ${{ github.repository_owner }}
+          OUT_EVENT_NAME: ${{ github.event_name }}
         run: |
-          echo *** have_secrets : ${{ needs.checkrights.outputs.have_secrets }}
-          echo *** registry     : ${{ needs.checkrights.outputs.registry }}
-          echo *** username     : ${{ github.repository_owner }}
-          echo *** event_name   : ${{ github.event_name }}
+          echo
+          echo "### have_secrets : $OUT_HAVE_SECRETS"
+          echo "### registry     : $OUT_REGISTRY"
+          echo "### username     : $OUT_USER_NAME"
+          echo "### event_name   : $OUT_EVENT_NAME"
+          echo
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
