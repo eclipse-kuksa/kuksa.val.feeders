@@ -35,8 +35,9 @@ jobs:
       run: |
           if [ ! -z "${{ secrets.PUSH_CONTAINER_TOKEN }}" ]; then
             echo "Running from base repo. Will push to ghcr.io"
-            echo "{have_secrets}={true}" >> $GITHUB_OUTPUT
+            echo "have_secrets=true" >> $GITHUB_OUTPUT
           else
             echo "No secrets for pushing. Will push ephemeral images to ttl.sh"
-            echo "{have_secrets}={false}" >> $GITHUB_OUTPUT
+            echo "have_secrets=false" >> $GITHUB_OUTPUT
           fi
+      shell: bash
