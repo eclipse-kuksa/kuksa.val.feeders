@@ -77,6 +77,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Check Docker setup
+        run: |
+          echo *** have_secrets : ${{ needs.checkrights.outputs.have_secrets }}
+          echo *** registry     : ${{ needs.checkrights.outputs.registry }}
+          echo *** username     : ${{ github.repository_owner }}
+          echo *** event_name   : ${{ github.event_name }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
