@@ -82,13 +82,11 @@ jobs:
       - name: Check Docker setup
         env:
           OUT_HAVE_SECRETS: ${{ needs.checkrights.outputs.have_secrets }}
-          OUT_REGISTRY: ${{ needs.checkrights.outputs.registry }}
           OUT_USER_NAME: ${{ github.repository_owner }}
           OUT_EVENT_NAME: ${{ github.event_name }}
         run: |
           echo
           echo "### have_secrets : $OUT_HAVE_SECRETS"
-          echo "### registry     : $OUT_REGISTRY"
           echo "### username     : $OUT_USER_NAME"
           echo "### event_name   : $OUT_EVENT_NAME"
           echo
@@ -110,7 +108,7 @@ jobs:
         uses: docker/login-action@v2
         if: needs.checkrights.outputs.have_secrets == 'true'
         with:
-            registry: ${{ needs.checkrights.outputs.registry }}
+            registry: ghcr.io
             username: ${{ github.repository_owner }}
             password: ${{ secrets.GITHUB_TOKEN }}
 
