@@ -14,6 +14,8 @@
 name: someip2val-build
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     paths:
       - ".github/workflows/someip2val_build.yml"
