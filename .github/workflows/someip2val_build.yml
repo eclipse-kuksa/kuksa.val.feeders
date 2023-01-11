@@ -39,7 +39,8 @@ jobs:
 
   build:
     name: Build Binaries
-    if: github.event.inputs.build_binaries == 'true'
+    # build if explicitly requested or merging to main
+    if: ${{ github.event.inputs.build_binaries == 'true' || (needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request') }}
     # reduce runtime requirements from ubuntu, ubuntu-18.04 fails for aarch64
     runs-on: ubuntu-20.04
     strategy:
