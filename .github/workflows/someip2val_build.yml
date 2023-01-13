@@ -86,9 +86,8 @@ jobs:
           echo "### have_secrets : ${{ needs.checkrights.outputs.have_secrets }}"
           echo "### username     : ${{ github.repository_owner }}"
           echo "### event        : ${{ github.event_name }}"
-          echo "### curl"
           SCOPE=$(curl -sS -f -I -H "Authorization: token ${{secrets.GITHUB_TOKEN}}" https://api.github.com | grep "x-oauth-scopes:") || true
-          echo "### token scopes : $SCOPE"
+          echo "### token scope  : $SCOPE"
           exit 0
         shell: bash
 
@@ -116,9 +115,8 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}/someip-feeder
           tags: |
-            type=sha
+            # type=sha
             type=ref,event=tag
-            type=edge
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
