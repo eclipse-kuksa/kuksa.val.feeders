@@ -16,7 +16,7 @@ jobs:
     - name: check GITHUB_TOKEN allows GHCR push access
       id: check-secrets
       run: |
-          if [ "${{ github.event_name }}" == "push" ] && [ "${{ github.repository }" == "eclipse/kuksa.val.feeders" ]; then
+          if [ "${{ github.event_name }}" == "push" ] && [ "${{ github.repository }}" == "eclipse/kuksa.val.feeders" ]; then
             echo "We are pushing to kuksa.val.feeders upstream, so we should have rights"
             echo "have_secrets=true" >> $GITHUB_OUTPUT
             exit 0
