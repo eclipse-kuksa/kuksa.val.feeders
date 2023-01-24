@@ -68,9 +68,24 @@ jobs:
           tags: ${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{steps.repository-name-adjusted.outputs.lowercase}}
+
       - name: Temporarily save Docker image
         uses: actions/upload-artifact@v3
         with:
           name: Container image
           path: ${{github.workspace}}/dbc2val.tar
           retention-days: 1
+
+      - name: Run dbc tests
+        run: |
+          cd dbc2val
+          pip3 install --no-cache-dir -r requirements-dev.txt
+          python -m pytest
+
+      - name: Run pylint (but accept errors for now)
+        run: |
+          cd dbc2val
+          # First just show, never fail
+          pylint --exit-zero dbcfeeder.py dbcfeederlib test
+          # Fail on errors and above
+          pylint -E dbcfeeder.py dbcfeederlib test
