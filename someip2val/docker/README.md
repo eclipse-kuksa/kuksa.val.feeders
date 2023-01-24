@@ -147,7 +147,7 @@ Path must be set in `VSOMEIP_CONFIGURATION`, as well as `VSOMEIP_APPLICATION_NAM
     Received a notification for Event [1234.5678.8778] to Client/Session [0000/019d] = (4) 00 01 02 03
     ```
 
-    Notification payload is byte[] received from notify service container. So far it is not forwarded to Kuksa.VAL
+    Notification payload is byte[] received from notify service container. So far it is not forwarded to KUKSA.val
 
 
 **NOTE:**
