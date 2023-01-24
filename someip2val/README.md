@@ -11,15 +11,14 @@
       - [Environment variables for vsomeip](#environment-variables-for-vsomeip)
       - [Wiper configuration files](#wiper-configuration-files)
       - [Config file modifications](#config-file-modifications)
-- [Containerization](#containerization)
-      - [Running SOME/IP containers with host networking on a single host](#running-someip-containers-with-host-networking-on-a-single-host)
-      - [Running SOME/IP containers in Docker network](#running-someip-containers-in-docker-network)
+  - [Containerization](#containerization)
+    - [Running SOME/IP containers with host networking on a single host](#running-someip-containers-with-host-networking-on-a-single-host)
+    - [Running SOME/IP containers in Docker network](#running-someip-containers-in-docker-network)
   - [Runing SOME/IP example service and someip2val feeder](#runing-someip-example-service-and-someip2val-feeder)
     - [Local mode (single host)](#local-mode-single-host)
     - [UDP mode (2 hosts)](#udp-mode-2-hosts)
     - [Containerized setup](#containerized-setup)
   - [Extending someip2val feeder](#extending-someip2val-feeder)
-- [vsomeip integration in Docker containers](#vsomeip-integration-in-docker-containers)
 
 ----------------
 
@@ -152,11 +151,11 @@ In order to use non-proxy mode on 2 network hosts, you have to modify the `.unic
 - Environment setup for Wiper Client: [./bin/setup-someip2val.sh](./bin/setup-someip2val.sh)
 - Environment setup for Wiper Client (Proxy): [./bin/setup-someip2val-proxy.sh](./bin/setup-someip2val-proxy.sh)
 
-# Containerization
+## Containerization
 
 vsomeip has an additional limitation regarding containers - it needs access to `/tmp`, where it creates its main routing application unux socket `/tmp/vsomeip-0`. This means that if you want to use host networking (allowing access to external SOME/IP hosts), both containers must have mounted `/tmp` to access the master routing vsomeip app.
 
-#### Running SOME/IP containers with host networking on a single host
+### Running SOME/IP containers with host networking on a single host
 
 
 ```sh
@@ -177,7 +176,7 @@ docker run -it --rm --name someip2val --network host -v /tmp/vsomeip:/tmp ghcr.i
 ### |WiperEvent| Pos: 15.0000, DC: 0.00, Wiping:0, CycEnd:0 PosReach:1, ...
 ```
 
-#### Running SOME/IP containers in Docker network
+### Running SOME/IP containers in Docker network
 
 Alternativle approach is to use dedicated docker network for the wiper service and someip2val feeder containers, so they
 can discover each other, but without access to external SOME/IP services.
@@ -281,8 +280,3 @@ typedef std::function <
 ```
 - `SomeIPConfig` vsomeip service/instance/event_group/event values also have to be changed (e.g. via environment variables, or in code)
 - `SomeipFeederAdapter::on_someip_message()` : Example for someip payload callback, deserializing payload and feeding to Databroker
-
-
-# vsomeip integration in Docker containers
-
-Running default vsomeip examples in containers is described in details [here](docker/README.md)
