@@ -5,27 +5,44 @@ on:
         description: "In possession of ghcr.io tokens?"
         value: ${{ jobs.check_push_rights.outputs.have_secrets }}
 
-
 jobs:
   check_push_rights:
     runs-on: ubuntu-latest
+
+    # # Permissions needed to push to ghcr.io. may not be granted on eclipse repo
+    # permissions:
+    #   contents: read
+    #   packages: write
+
     outputs:
       have_secrets: ${{ steps.check-secrets.outputs.have_secrets }}
 
     steps:
+
+    - name: Dump GitHub Context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: |
+        echo "$GITHUB_CONTEXT"
+
     #Check we have access to secrets for pushing to GHCR. Forks do not
-    - name: check GITHUB_TOKEN allows GHCR push access
+    - name: Check GITHUB_TOKEN allows GHCR push access
       id: check-secrets
       run: |
-          if [[ ${{ github.event_name }} == "push"  ]] &&  [[ ${{ github.repository }} == "eclipse/kuksa.val.feeders"  ]]; then
+          if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ github.repository_owner }}" == "eclipse" ]]; then
             echo "We are pushing to kuksa.val.feeders upstream, so we should have rights"
             echo "have_secrets=true" >> $GITHUB_OUTPUT
             exit 0
             # if it is a pull_request and my_repo is kuksa.val.feeders I can push to GHCR,
             # (note that some/all workflows int his repo might still opt to no push PR builds to GHCR)
           fi
-          if [[ ${{ github.event_name }} == "pull_request"  ]] &&  [[ ${{ github.event.pull_request.head.repo.full_name }} == "eclipse/kuksa.val.feeders"  ]]; then
-              echo "We are an internal pull request , so we should have rights"
+          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == eclipse/* ]]; then
+              echo "We are an internal pull request, so we should have rights"
+              echo "have_secrets=true" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == boschglobal/* ]]; then
+              echo "We are an boschglobal pull request, so we should have rights"
               echo "have_secrets=true" >> $GITHUB_OUTPUT
               exit 0
           fi
