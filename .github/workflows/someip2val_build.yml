@@ -16,8 +16,11 @@ name: someip2val-build
 on:
   push:
     branches: [ main ]
+    tags:
+      - "v*.*.*"
   pull_request:
     paths:
+      - ".github/workflows/check_push_rights.yml"
       - ".github/workflows/someip2val_build.yml"
       - "someip2val/**"
   workflow_dispatch:
