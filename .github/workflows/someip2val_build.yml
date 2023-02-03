@@ -83,19 +83,33 @@ jobs:
     name: Build Docker
     needs: checkrights
 
+    # may fail on eclipse, testing...
+    permissions:
+      contents: read
+      packages: write
+
     steps:
 
       - name: Check Setup
-        env:
-          OUT_HAVE_SECRETS: ${{ needs.checkrights.outputs.have_secrets }}
-          OUT_USER_NAME: ${{ github.repository_owner }}
-          OUT_EVENT_NAME: ${{ github.event_name }}
         run: |
-          echo
-          echo "### have_secrets : $OUT_HAVE_SECRETS"
-          echo "### username     : $OUT_USER_NAME"
-          echo "### event_name   : $OUT_EVENT_NAME"
-          echo
+          echo "github {"
+          echo "  event_name: ${{ github.event_name }}",
+          echo "  repository: ${{ github.repository }}",
+          echo "  repository_owner: ${{github.repository_owner}}",
+          echo "  secret_source: ${{github.secret_source}}",
+          echo "  event.workflow: ${{github.event.workflow}}",
+          echo "  event.repository.fork: ${{github.event.repository.fork}}",
+          echo "  event.repository.full_name: ${{github.event.repository.full_name}}",
+          echo "  event.pull_request.base.label: ${{github.event.pull_request.base.label}}",
+          echo "  event.pull_request.head.label: ${{github.event.pull_request.head.label}}"
+          echo "}"
+
+          echo "### have_secrets : ${{ needs.checkrights.outputs.have_secrets }}"
+
+          # SCOPE=$(curl -sS -f -I -H "Authorization: token ${{secrets.GITHUB_TOKEN}}" https://api.github.com | grep "x-oauth-scopes:") || true
+          # echo "### token scope  : $SCOPE"
+          exit 0
+        shell: bash
 
       - name: Checkout repository
         uses: actions/checkout@v3
