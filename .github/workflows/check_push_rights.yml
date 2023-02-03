@@ -23,32 +23,46 @@ jobs:
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
       run: |
-        echo "$GITHUB_CONTEXT"
+        echo "$GITHUB_CONTEXT" | grep -v '"token":'
 
-    #Check we have access to secrets for pushing to GHCR. Forks do not
+    # Check we have access to secrets for pushing to GHCR. Forks do not
     - name: Check GITHUB_TOKEN allows GHCR push access
       id: check-secrets
       run: |
-          if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ github.repository_owner }}" == "eclipse" ]]; then
-            echo "We are pushing to kuksa.val.feeders upstream, so we should have rights"
-            echo "have_secrets=true" >> $GITHUB_OUTPUT
-            exit 0
-            # if it is a pull_request and my_repo is kuksa.val.feeders I can push to GHCR,
-            # (note that some/all workflows int his repo might still opt to no push PR builds to GHCR)
-          fi
-          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == eclipse/* ]]; then
-              echo "We are an internal pull request, so we should have rights"
+
+          echo "-- We are [${{ github.event_name }}] event, running in [${{ github.repository }}] repository"
+
+          if [[ "${{ github.repository_owner }}" == "eclipse" ]]; then
+            if [[ "${{ github.event_name }}" == "push" ]]; then
+              echo "We are pushing to kuksa.val.feeders upstream, so we should have rights"
               echo "have_secrets=true" >> $GITHUB_OUTPUT
               exit 0
+              # if it is a pull_request and my_repo is kuksa.val.feeders I can push to GHCR,
+              # (note that some/all workflows in this repo might still opt to no push PR builds to GHCR)
+            fi
+            if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == eclipse/* ]]; then
+                echo "We are an internal pull request, so we should have rights"
+                echo "have_secrets=true" >> $GITHUB_OUTPUT
+                exit 0
+            fi
+          else
+            # non-eclipse forks could be less restrictive
+            if [[ "${{ event.repository.fork }}" != "false" ]]; then
+                echo "We are a pull request in a forked repo, so we should have rights"
+                echo "have_secrets=true" >> $GITHUB_OUTPUT
+                exit 0
+            fi
+            if [[ "${{ github.secret_source }}" != "None" ]; then
+                echo "We have a secret source, probably we should have rights"
+                echo "have_secrets=true" >> $GITHUB_OUTPUT
+                exit 0
+            fi
+            # assume we are a fork and have some rights to push in ghcr of that fork
           fi
-          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == boschglobal/* ]]; then
-              echo "We are an boschglobal pull request, so we should have rights"
-              echo "have_secrets=true" >> $GITHUB_OUTPUT
-              exit 0
-          fi
+
           # Everything else
           echo "Seems we do not have rights to push"
-          echo "We are event ${{ github.event_name }} running in ${{ github.repository }}"
           echo "In case this is a PR it is coming from ${{ github.event.pull_request.head.repo.full_name }} "
           echo "have_secrets=false" >> $GITHUB_OUTPUT
+
       shell: bash
