@@ -47,7 +47,7 @@ jobs:
             fi
           else
             # non-eclipse forks could be less restrictive
-            if [[ "${{ event.repository.fork }}" != "false" ]]; then
+            if [[ "${{ github.event.repository.fork }}" != "false" ]]; then
                 echo "We are a pull request in a forked repo, so we should have rights"
                 echo "have_secrets=true" >> $GITHUB_OUTPUT
                 exit 0
