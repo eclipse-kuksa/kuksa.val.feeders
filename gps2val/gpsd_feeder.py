@@ -19,7 +19,7 @@
 ########################################################################
 
 # This provider gets data from a simple log file which contains lines
-# formatted 
+# formatted
 # lat,lon
 # All other values will be reported as 0
 
@@ -48,10 +48,10 @@ class Kuksa_Client():
         provider_config=config['kuksa_val']
         self.client = KuksaClientThread(provider_config)
         self.client.start()
-        if str(provider_config.get('protocol')) == 'ws':
+        if str(provider_config.get('protocol')) == 'ws':  # FIXME: and provider_config.get('insecure') != 'True'
             print("authorizing...")
             self.client.authorize(str(provider_config.get('token')))
-        
+
     def shutdown(self):
         self.client.stop()
 
@@ -60,7 +60,7 @@ class Kuksa_Client():
         for k,v in data.items():
             if v is not None:
                 self.client.setValue(k,str(v))
-               
+
 class GPSDClientThread(threading.Thread):
     def __init__(self, config, consumer):
         super(GPSDClientThread, self).__init__()
@@ -68,7 +68,7 @@ class GPSDClientThread(threading.Thread):
         if "gpsd" not in config:
             print("gpsd section missing from configuration, exiting")
             sys.exit(-1)
-        
+
         self.consumer = consumer
         provider_config=config['gpsd']
         self.gpsd_host=provider_config.get('host','127.0.0.1')
@@ -101,19 +101,19 @@ class GPSDClientThread(threading.Thread):
                 print("Exiting")
                 break
 
-     
-
-
     def shutdown(self):
         self.running = False
         self.consumer.shutdown()
         print("KUKSA client shutdown")
         self.client.close()
         print("GPSD client shutdown")
-        self.join()
-        print("Shutdown completed")
+        self.join(1)
+        if not self.is_alive():
+            print("Shutdown completed")
+        else:
+            print("Shutdown join timed out!")
 
-        
+
 if __name__ == "__main__":
     manual_config = argparse.ArgumentParser()
     manual_config.add_argument("--host", help="Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1", nargs='?' , default="127.0.0.1")
@@ -131,6 +131,7 @@ if __name__ == "__main__":
     print(args)
     if os.path.isfile(args.file):
         configfile = args.file
+        print("# Using config from: {}".format(configfile))
     else:
         config_object = configparser.ConfigParser()
         print("No configuration file found. Using default values.")
@@ -147,22 +148,26 @@ if __name__ == "__main__":
         config_object["gpsd"] = {
             "interval": args.interval,
             "host": args.gpsd_host,
-            "port": args.gpsd_port, 
+            "port": args.gpsd_port,
         }
+        print("\n#<config.ini>:")
+        config_object.write(sys.stdout)
         with open('config.ini', 'w') as conf:
-            config_object.write(conf) 
+            config_object.write(conf)
         configfile = "config.ini"
 
     config = configparser.ConfigParser()
     config.read(configfile)
-    
+
     gpsd_client = GPSDClientThread(config, Kuksa_Client(config))
     gpsd_client.start()
+
 
     def terminationSignalreceived(signalNumber, frame):
         print("Received termination signal. Shutting down")
         gpsd_client.shutdown()
+        os._exit(1)
+
     signal.signal(signal.SIGINT, terminationSignalreceived)
-    signal.signal(signal.SIGQUIT, terminationSignalreceived)
     signal.signal(signal.SIGTERM, terminationSignalreceived)
 
