@@ -3,48 +3,44 @@ name: kuksa_gps_feeder
 on:
   push:
     branches: [ main ]
+    tags:
+      - "v*.*.*"
   pull_request:
     branches: [ main ]
-    paths: 
+    paths:
+     - ".github/workflows/check_push_rights.yml"
      - ".github/workflows/kuksa_gps_feeder.yml"
      - "gps2val/**"
   workflow_dispatch:
-  
+
+env:
+  EPHEMERAL_IMAGE: "ttl.sh/kuksa.val.feefers/gps-${{ github.sha }}:1h"
 
 jobs:
-  check_push_rights:
-    runs-on: self-hosted
-    outputs:
-      have_secrets: ${{ steps.check-secrets.outputs.have_secrets }}
-      registry: ${{ steps.check-secrets.outputs.registry }}
-    
-    steps:
-    #Check we have access to secrets. Forks do not
-    - name: check for secrets needed to run demo
-      id: check-secrets
-      run: |
-          if [ ! -z "${{ secrets.PUSH_CONTAINER_TOKEN }}" ]; then
-            echo "Running from base repo. Will push to ghcr.io"
-            echo "::set-output name=have_secrets::true"
-            echo "::set-output name=registry::ghcr.io"
-          else
-            echo "No secrets for pushing. Will push ephemeral images to ttl.sh"
-            echo "::set-output name=have_secrets::false"
-            echo "::set-output name=registry::ttl.sh"
-          fi
-  build:
-    runs-on: self-hosted
-    needs: [check_push_rights]
-   
+
+  checkrights:
+    uses: ./.github/workflows/check_push_rights.yml
+    secrets: inherit
+
+  build-self-hosted:
+    if: ${{ github.repository_owner == 'eclipse' }}
+    runs-on: [ self-hosted ]
+    needs: checkrights
+
+    # With default permissions, release action fails on forks
+    permissions:
+      contents: read
+      packages: write
+
     steps:
     - uses: actions/checkout@v3
-        
+
     - name: Docker meta
       id: meta
-      uses: docker/metadata-action@v3.5.0
+      uses: docker/metadata-action@v4
       with:
         # list of Docker images to use as base name for tags
-        images: ghcr.io/eclipse/kuksa.val.feeders/gps
+        images: ghcr.io/${{ github.repository }}/gps
         # generate Docker tags based on the following events/attributes
         tags: |
           type=ref,event=branch
@@ -52,19 +48,22 @@ jobs:
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
-      
-    - run: echo ${{ needs.check_push_rights.outputs.have_secrets }}
-      
+
+    - name: Check Rights
+      run: |
+        echo "### [self-hosted] event:[${{ github.event_name }}], have_secrets: ${{ needs.checkrights.outputs.have_secrets }}"
+      shell: bash
+
     - name: Log in to the Container registry
-      if: needs.check_push_rights.outputs.have_secrets == 'true'
+      if: needs.checkrights.outputs.have_secrets == 'true'
       uses: docker/login-action@v2
       with:
-          registry: ${{ needs.check_push_rights.outputs.registry }}
-          username: kuksa-bot
-          password: ${{ secrets.PUSH_CONTAINER_TOKEN }}
-                  
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Build and push KUKSA gps feeder container image and push to ghcr.io
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }} 
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
       uses: docker/build-push-action@v3
       with:
         platforms: |
@@ -74,10 +73,9 @@ jobs:
         push: true
         tags: |
           ${{ steps.meta.outputs.tags }}
-          ttl.sh/kuksa.val.feeders/gps-${{github.sha}}:1h
+          ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
-        
-            
+
     - name: Build ephemereal KUKSA gps feeder and push to ttl.sh
       if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
       uses: docker/build-push-action@v3
@@ -87,7 +85,102 @@ jobs:
           linux/arm64
         context: gps2val
         push: true
-        tags: "ttl.sh/kuksa.val.feeders/gps-${{github.sha}}:1h"
+        tags: ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
-        
-  
+
+  build:
+    # we don't have self hosted runners on forked repos, to optimize builds just amd64 image will be built
+    if: ${{ github.repository_owner != 'eclipse' }}
+    runs-on: ubuntu-latest
+    needs: checkrights
+
+    # With default permissions, release action fails on forks
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    ## NOTE: Uncomment following step if you want to build arm64 image without self-hosted runner on eclipse. It needs ~3h to finish!
+
+    # - name: Set up QEMU
+    #   uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        # list of Docker images to use as base name for tags
+        images: ghcr.io/${{ github.repository }}/gps
+        # generate Docker tags based on the following events/attributes
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+
+    - name: Check Rights
+      run: |
+        echo "### event:[${{ github.event_name }}], have_secrets: ${{ needs.checkrights.outputs.have_secrets }}"
+      shell: bash
+
+    - name: Log in to the Container registry
+      if: needs.checkrights.outputs.have_secrets == 'true'
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push KUKSA gps feeder container image and push to ghcr.io
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      uses: docker/build-push-action@v3
+      with:
+        platforms: |
+          linux/amd64
+        context: gps2val
+        push: true
+        tags: |
+          ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
+      if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      uses: docker/build-push-action@v3
+      with:
+        platforms: |
+          linux/amd64
+        context: gps2val
+        push: true
+        tags: ${{ env.EPHEMERAL_IMAGE }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Update ttl.sh Summary
+      if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
+      run: |
+        echo '## ttl.sh ephemeral image (valid for 1h)' >> $GITHUB_STEP_SUMMARY
+        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :package: ```docker pull ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
+        echo '- run the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :rocket: ```docker run -it --rm ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
+          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Update ghcr.io Summary
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      run: |
+        echo '## ghcr.io image' >> $GITHUB_STEP_SUMMARY
+        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :package: ```docker pull '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
+        echo '- run the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :rocket: ```docker run -it --rm '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
+          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
+        fi
+      shell: bash
