@@ -1,0 +1,43 @@
+# /********************************************************************************
+# * Copyright (c) 2023 Contributors to the Eclipse Foundation
+# *
+# * See the NOTICE file(s) distributed with this work for additional
+# * information regarding copyright ownership.
+# *
+# * This program and the accompanying materials are made available under the
+# * terms of the Apache License 2.0 which is available at
+# * http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * SPDX-License-Identifier: Apache-2.0
+# ********************************************************************************/
+
+name: Post container location
+description: Post snippet to pull and run test container
+
+inputs:
+  image:
+    required: true
+    type: string
+    description: The OCI image
+
+  docker-run-args:
+    required: false
+    type: string
+    description: Optional docker run arguments
+
+  message:
+    required: false
+    type: string
+    description: Optional message to log
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        echo "## :rocket: Something new is in the world" >> $GITHUB_STEP_SUMMARY
+        echo -e "\nImages for testing temporarily available at \`${{ inputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+        echo -e "\n\`\`\`\ndocker pull ${{ inputs.image }} ${{ inputs.docker-run-args }}\n\`\`\`" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ inputs.message }}" ]; then
+          echo -e "\n${{ inputs.message }}" >> $GITHUB_STEP_SUMMARY
+        fi
