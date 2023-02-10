@@ -1,11 +1,15 @@
-# Copyright Robert Bosch GmbH, 2020-2023. Part of the Eclipse Kuksa Project.
-#
-# All rights reserved. This configuration file is provided to you under the
-# terms and conditions of the Eclipse Distribution License v1.0 which
-# accompanies this distribution, and is available at
-# http://www.eclipse.org/org/documents/edl-v10.php
-#
-
+# /********************************************************************************
+# * Copyright (c) 2020-2023 Contributors to the Eclipse Foundation
+# *
+# * See the NOTICE file(s) distributed with this work for additional
+# * information regarding copyright ownership.
+# *
+# * This program and the accompanying materials are made available under the
+# * terms of the Apache License 2.0 which is available at
+# * http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * SPDX-License-Identifier: Apache-2.0
+# ********************************************************************************/
 
 FROM python:3.10-alpine as build
 
