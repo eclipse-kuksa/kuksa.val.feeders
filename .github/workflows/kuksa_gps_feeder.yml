@@ -76,13 +76,14 @@ jobs:
           ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    # NOTE: linux/arm64 platform removed as we are getting Error 413 from ttl.sh due to image size.
+    # Only merging to main / release should build multiarch image and push to ghcr.io
     - name: Build ephemereal KUKSA gps feeder and push to ttl.sh
       if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
       uses: docker/build-push-action@v3
       with:
         platforms: |
           linux/amd64
-          linux/arm64
         context: gps2val
         push: true
         tags: ${{ env.EPHEMERAL_IMAGE }}
