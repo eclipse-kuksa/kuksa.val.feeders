@@ -82,6 +82,7 @@ jobs:
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ steps.meta.outputs.tags }}
+        docker-run-args: "-it --rm"
 
 
     # NOTE: linux/arm64 platform removed as we are getting Error 413 from ttl.sh due to image size.
@@ -102,6 +103,7 @@ jobs:
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ env.EPHEMERAL_IMAGE }}
+        docker-run-args: "-it --rm"
         message: "**NOTE:** Only **linux/amd64** image is included (ttl.sh push fails on big images)"
 
 
@@ -172,6 +174,7 @@ jobs:
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ steps.meta.outputs.tags }}
+        docker-run-args: "-it --rm"
         message: "**NOTE:** Only **linux/amd64** image is included (self-hosted runner not available on forks)"
 
 
@@ -191,4 +194,5 @@ jobs:
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ env.EPHEMERAL_IMAGE }}
+        docker-run-args: "-it --rm"
         message: "**NOTE:** Only **linux/amd64** image is included (self-hosted runner not available on forks)"
