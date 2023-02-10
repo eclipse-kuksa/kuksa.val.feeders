@@ -89,6 +89,31 @@ jobs:
         tags: ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - name: Update ttl.sh Summary
+      if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
+      run: |
+        echo '## ttl.sh ephemeral image (valid for 1h)' >> $GITHUB_STEP_SUMMARY
+        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :package: ```docker pull ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
+        echo '- run the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :rocket: ```docker run -it --rm ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
+          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Update ghcr.io Summary
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      run: |
+        echo '## ghcr.io image' >> $GITHUB_STEP_SUMMARY
+        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :package: ```docker pull '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
+        echo '- run the image' >> $GITHUB_STEP_SUMMARY
+        echo '  :rocket: ```docker run -it --rm '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
+          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
+        fi
+      shell: bash
+
   build:
     # we don't have self hosted runners on forked repos, to optimize builds just amd64 image will be built
     if: ${{ github.repository_owner != 'eclipse' }}
