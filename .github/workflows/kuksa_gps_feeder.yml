@@ -8,6 +8,7 @@ on:
   pull_request:
     branches: [ main ]
     paths:
+     - ".github/actions/post-container-location/action.yml"
      - ".github/workflows/check_push_rights.yml"
      - ".github/workflows/kuksa_gps_feeder.yml"
      - "gps2val/**"
@@ -62,6 +63,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+
     - name: Build and push KUKSA gps feeder container image and push to ghcr.io
       if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
       uses: docker/build-push-action@v3
@@ -74,6 +76,13 @@ jobs:
         tags: |
           ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Posting ghcr.io Summary
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      uses: ./.github/actions/post-container-location
+      with:
+        image: ${{ steps.meta.outputs.tags }}
+
 
     # NOTE: linux/arm64 platform removed as we are getting Error 413 from ttl.sh due to image size.
     # Only merging to main / release should build multiarch image and push to ghcr.io
@@ -88,30 +97,13 @@ jobs:
         tags: ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
 
-    - name: Update ttl.sh Summary
-      if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
-      run: |
-        echo '## ttl.sh ephemeral image (valid for 1h)' >> $GITHUB_STEP_SUMMARY
-        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :package: ```docker pull ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
-        echo '- run the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :rocket: ```docker run -it --rm ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
-        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
-          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
-        fi
+    - name: Posting ttl.sh Summary
+      if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      uses: ./.github/actions/post-container-location
+      with:
+        image: ${{ env.EPHEMERAL_IMAGE }}
+        message: "**NOTE:** Only **linux/amd64** image is included (ttl.sh push fails on big images)"
 
-    - name: Update ghcr.io Summary
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
-      run: |
-        echo '## ghcr.io image' >> $GITHUB_STEP_SUMMARY
-        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :package: ```docker pull '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
-        echo '- run the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :rocket: ```docker run -it --rm '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
-        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
-          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
-        fi
-      shell: bash
 
   build:
     # we don't have self hosted runners on forked repos, to optimize builds just amd64 image will be built
@@ -162,6 +154,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+
     - name: Build and push KUKSA gps feeder container image and push to ghcr.io
       if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
       uses: docker/build-push-action@v3
@@ -174,6 +167,14 @@ jobs:
           ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - name: Posting ghcr.io Summary
+      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      uses: ./.github/actions/post-container-location
+      with:
+        image: ${{ steps.meta.outputs.tags }}
+        message: "**NOTE:** Only **linux/amd64** image is included (self-hosted runner not available on forks)"
+
+
     - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
       if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
       uses: docker/build-push-action@v3
@@ -185,27 +186,9 @@ jobs:
         tags: ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
 
-    - name: Update ttl.sh Summary
-      if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
-      run: |
-        echo '## ttl.sh ephemeral image (valid for 1h)' >> $GITHUB_STEP_SUMMARY
-        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :package: ```docker pull ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
-        echo '- run the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :rocket: ```docker run -it --rm ' ${{ env.EPHEMERAL_IMAGE }} '```' >> $GITHUB_STEP_SUMMARY
-        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
-          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
-        fi
-
-    - name: Update ghcr.io Summary
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
-      run: |
-        echo '## ghcr.io image' >> $GITHUB_STEP_SUMMARY
-        echo '- pull the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :package: ```docker pull '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
-        echo '- run the image' >> $GITHUB_STEP_SUMMARY
-        echo '  :rocket: ```docker run -it --rm '${{ steps.meta.outputs.tags }}'```' >> $GITHUB_STEP_SUMMARY
-        if [ "${{ github.repository_owner}}" != "eclipse" ]; then
-          echo '**NOTE:** Only **linux/amd64** is included (self-hosted runner not available on forks)' >> $GITHUB_STEP_SUMMARY
-        fi
-      shell: bash
+    - name: Posting ttl.sh Summary
+      if: ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      uses: ./.github/actions/post-container-location
+      with:
+        image: ${{ env.EPHEMERAL_IMAGE }}
+        message: "**NOTE:** Only **linux/amd64** image is included (self-hosted runner not available on forks)"
