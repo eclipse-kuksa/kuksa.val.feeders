@@ -35,9 +35,10 @@ runs:
   steps:
     - shell: bash
       run: |
-        echo "## :rocket: Something new is in the world" >> $GITHUB_STEP_SUMMARY
-        echo -e "\nImages for testing temporarily available at \`${{ inputs.image }}\`" >> $GITHUB_STEP_SUMMARY
-        echo -e "\n\`\`\`\ndocker pull ${{ inputs.image }} ${{ inputs.docker-run-args }}\n\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "## :rocket: New image is pushed" >> $GITHUB_STEP_SUMMARY
+        echo -e "\nImage for testing temporarily available at \`${{ inputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+        echo -e "\n\`\`\`\ndocker pull ${{ inputs.image }}\n\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo -e "\n\`\`\`\ndocker run ${{ inputs.docker-run-args }} ${{ inputs.image }}\n\`\`\`" >> $GITHUB_STEP_SUMMARY
         if [ -n "${{ inputs.message }}" ]; then
           echo -e "\n${{ inputs.message }}" >> $GITHUB_STEP_SUMMARY
         fi
