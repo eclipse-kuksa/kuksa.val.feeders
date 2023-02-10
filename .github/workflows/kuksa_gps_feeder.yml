@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  EPHEMERAL_IMAGE: "ttl.sh/kuksa.val.feefers/gps-${{ github.sha }}:1h"
+  EPHEMERAL_IMAGE: "ttl.sh/kuksa.val.feeders/gps-${{ github.sha }}:1h"
 
 jobs:
 
@@ -73,12 +73,11 @@ jobs:
         push: true
         tags: |
           ${{ steps.meta.outputs.tags }}
-          ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
 
     # NOTE: linux/arm64 platform removed as we are getting Error 413 from ttl.sh due to image size.
     # Only merging to main / release should build multiarch image and push to ghcr.io
-    - name: Build ephemereal KUKSA gps feeder and push to ttl.sh
+    - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
       if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
       uses: docker/build-push-action@v3
       with:
