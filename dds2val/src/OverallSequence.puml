@@ -1,0 +1,23 @@
+@startuml
+
+title DDS on SDV
+box "Container-1"
+participant databroker
+end box
+databroker <-- ddsfeeder : grpc_connect
+alt on connection
+ddsfeeder --> databroker : register_datapoints
+ddsfeeder --> DDS_network : subscribe to topics
+box "Container-2"
+participant ddspublisher1
+end box
+box "Container-3"
+participant ddspublisher2
+end box
+ddspublisher1 --> DDS_network : publish dds message
+ddspublisher2 --> DDS_network : publish dds message
+alt on data reception
+ddsfeeder --> databroker : update_datapoint
+end note
+end
+@enduml

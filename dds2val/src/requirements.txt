@@ -1,0 +1,6 @@
+# feeder
+cyclonedds
+kuksa-client
+# mapper
+pyyaml
+py-expression-eval
