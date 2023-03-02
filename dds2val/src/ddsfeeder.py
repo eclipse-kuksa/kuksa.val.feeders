@@ -38,7 +38,7 @@ from cyclonedds.topic import Topic
 from grpc import ChannelConnectivity
 from kuksa_client.grpc import VSSClient, VSSClientError
 
-import databroker, vss2ddsmapper  # noqa: F401
+from . import databroker, vss2ddsmapper  # noqa: F401
 
 log = logging.getLogger("ddsfeeder")
 
