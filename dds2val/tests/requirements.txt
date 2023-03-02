@@ -1,0 +1,6 @@
+pytest
+pytest-html
+pytest-cov
+pytest-asyncio
+py
+kuksa-client
