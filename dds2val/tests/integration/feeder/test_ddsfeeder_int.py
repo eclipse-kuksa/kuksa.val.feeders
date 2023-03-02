@@ -15,6 +15,7 @@ import os
 import signal
 import threading
 import time
+import subprocess
 
 import pytest
 import sensor_msgs  # # noqa: F401
