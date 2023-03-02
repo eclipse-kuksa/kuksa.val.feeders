@@ -9,8 +9,8 @@ cd "$SCRIPT_DIR"
 cd /tmp
 rm -rf /tmp/vehicle_signal_specification
 rm -rf /tmp/vss-tools
-git clone https://github.com/COVESA/vehicle_signal_specification.git -b release/3.0
-git clone https://github.com/COVESA/vss-tools.git
+git clone https://github.com/COVESA/vehicle_signal_specification.git -b v3.1.1
+git clone https://github.com/COVESA/vss-tools.git -b v3.1
 
 # copy spec folder from VSS to VSS tools 
 cp -R /tmp/vehicle_signal_specification/spec /tmp/vss-tools/spec
@@ -30,7 +30,7 @@ cp -r . /tmp/idls
 cd /tmp/idls
 cp /tmp/vss-tools/out.idl /tmp/idls/vss
 
-idlc -l py -I std_msgs/msg -x final NavStatFix.idl
+idlc -l py -I std_msgs/msg -x final NavStatFix.idl 
 idlc -l py -I std_msgs/msg -x final NavSatStatus.idl
 idlc -l py -I std_msgs/msg -x final std_msgs/msg/Header.idl
 idlc -l py -I std_msgs/msg -x final std_msgs/msg/Time.idl
