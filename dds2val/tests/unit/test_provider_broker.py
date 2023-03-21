@@ -18,7 +18,7 @@ from unittest import mock
 import kuksa_client
 from kuksa_client.grpc import DataType, Metadata, VSSClientError
 
-from ...src.databroker import Provider
+from ddsproviderlib.databroker import Provider
 
 
 class TestFeederBroker(unittest.TestCase):

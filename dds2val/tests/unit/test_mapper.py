@@ -14,7 +14,7 @@
 import unittest
 from pathlib import Path
 
-from ...src.vss2ddsmapper import Vss2DdsMapper
+from ddsproviderlib.vss2ddsmapper import Vss2DdsMapper
 
 
 class TestMapper(unittest.TestCase):
@@ -23,7 +23,6 @@ class TestMapper(unittest.TestCase):
     def setUp(self):
         mappingfile = (
             Path(__file__).parent.parent.parent
-            / "src"
             / "mapping.yml"
         )
         self.mapper = Vss2DdsMapper(str(mappingfile))

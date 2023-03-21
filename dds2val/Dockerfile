@@ -35,10 +35,10 @@ ENV TARGETARCH=$TARGETARCH
 RUN chmod u+x setup_arm_build.sh
 RUN bash setup_arm_build.sh
 ENV PATH="/cyclonedds/install/bin:$PATH"
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements/requirements.txt
 
 RUN pip3 install scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
-WORKDIR /idls
+WORKDIR /ddsproviderlib/idls
 RUN ./generate_py_dataclass.sh
 
 WORKDIR /
@@ -48,7 +48,7 @@ RUN chmod u+x make_executable.sh
 RUN bash make_executable.sh
 
 WORKDIR /dist
-RUN staticx ddsfeeder ddsfeeder-exe
+RUN staticx ddsprovider ddsprovider-exe
 
 # Runner stage, to copy in the virtual environment and the app
 FROM scratch
@@ -64,7 +64,7 @@ WORKDIR /conf
 
 WORKDIR /dist
 
-COPY --from=builder /dist/ddsfeeder-exe .
+COPY --from=builder /dist/ddsprovider-exe .
 
 ENV PATH="/dist:$PATH"
 
@@ -73,4 +73,4 @@ ENV LOG_LEVEL="info"
 
 ENV PYTHONUNBUFFERED=yes
 
-ENTRYPOINT ["./ddsfeeder-exe"]
+ENTRYPOINT ["./ddsprovider-exe"]
