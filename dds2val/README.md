@@ -1,14 +1,6 @@
-<<<<<<< HEAD
-
 # DDS Provider
 
-# The DDS provider provides data from an DDS middleware/API. For further understanding of the DDS middleware/API see [this](https://www.dds-foundation.org/what-is-dds-3/).
-
-# DDS Feeder
-
-This is the a feeder to feed data from an DDS middleware/API. For further understanding the DDS see [here](https://www.dds-foundation.org/what-is-dds-3/).
-
-> > > > > > > 935fe62 (Update documentation)
+The DDS provider provides data from an DDS middleware/API. For further understanding of the DDS middleware/API see [this](https://www.dds-foundation.org/what-is-dds-3/).
 
 ## How to build
 
@@ -16,11 +8,8 @@ This is the a feeder to feed data from an DDS middleware/API. For further unders
 
 1. `python3 -m venv env && source env/bin/activate`
 2. `pip install -r requirements.txt`
-   <<<<<<< HEAD
-3. # `./idls/generate_py_dataclass.sh`
-4. `chmod u+x ddsproviderlib/idls/generate_py_dataclass.sh`
-5. `./ddsproviderlib/idls/generate_py_dataclass.sh`
-   > > > > > > > 935fe62 (Update documentation)
+3. `chmod u+x ddsproviderlib/idls/generate_py_dataclass.sh`
+4. `./ddsproviderlib/idls/generate_py_dataclass.sh`
 
 ### build image (suggested)
 
@@ -30,6 +19,7 @@ This is the a feeder to feed data from an DDS middleware/API. For further unders
 
 1. `python3 -m venv env && source env/bin/activate`
 2. `pip install -r requirements-kml.txt`
+3. `cd kml && python3 dds_kmlreplay.py directions.kml`
 
 ## How to run
 
