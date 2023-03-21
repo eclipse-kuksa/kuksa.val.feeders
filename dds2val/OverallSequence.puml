@@ -20,3 +20,4 @@ ddsprovider --> databroker : update_datapoint
 end note
 end
 @enduml
+# was converted to Mermaid diagram, because Github can dynamically load mermaid diagrams in README
