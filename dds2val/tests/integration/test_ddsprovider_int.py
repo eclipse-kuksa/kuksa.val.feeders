@@ -25,7 +25,7 @@ from cyclonedds.pub import DataWriter
 from cyclonedds.topic import Topic
 from kuksa_client.grpc.aio import VSSClient, VSSClientError
 
-from ....src import ddsfeeder as ddssrc
+import ddsprovider as ddssrc
 
 
 async def run_dds_feeder_and_send_dds_msg(data, topic_name, topic_type):
@@ -43,7 +43,7 @@ async def run_dds_feeder_and_send_dds_msg(data, topic_name, topic_type):
 
 
 @pytest.mark.asyncio
-async def test_ddsfeeder_start():
+async def test_ddsprovider_start():
     "Test case to verify data send on dds bus is received in broker"
 
     databroker = subprocess.Popen(['docker', 'run', '--net=host', 'ghcr.io/eclipse/kuksa.val/databroker:master'], stdin=subprocess.PIPE,
