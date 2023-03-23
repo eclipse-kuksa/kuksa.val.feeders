@@ -411,9 +411,18 @@ def main(argv):
 
     if server_type is ServerType.KUKSA_VAL_SERVER:
         config.setdefault("kuksa_val_server", {})
+        # Do we ever expect to run both val-server and databroker in parallell
+        # Or could we simplify to use same port by default in both cases?
         config["kuksa_val_server"].setdefault("ip", "localhost")
         config["kuksa_val_server"].setdefault("port", "8090")
+        # It seems like we do not care what protocol is specified. Remove?
+        # Or do we want to support combinations like KUKSA val server but with grpc protocol?
+        # But then it could as well be specifed as databroker server, right?
         config["kuksa_val_server"].setdefault("protocol", "ws")
+        # How do we want to treat configs like insecure/secure going forward
+        # insecure == No tokens, no server authentication
+        # secure = Both token auth and server auth?
+        # or do we need two configs? What is actually support in val-server today?
         config["kuksa_val_server"].setdefault("insecure", "False")
         kuksa_client_config = config["kuksa_val_server"]
     elif server_type is ServerType.KUKSA_DATABROKER:
@@ -424,6 +433,7 @@ def main(argv):
         config["kuksa_databroker"].setdefault("insecure", "True")
         kuksa_client_config = config["kuksa_databroker"]
 
+        # Why two different env-vars, and why not a single one that also works for VAL server?
         if os.environ.get("DAPR_GRPC_PORT"):
             kuksa_client_config["ip"] = "127.0.0.1"
             kuksa_client_config["port"] = os.environ.get("DAPR_GRPC_PORT")

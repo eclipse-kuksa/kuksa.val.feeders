@@ -104,18 +104,26 @@ A smaller excerpt from the above sample, with less signals.
 
 ## Configuration
 
-| parameter                     | default value   | config file          | Env var                       | command line argument | description                                                                                             |
-|-------------------------------|-----------------|----------------------|-------------------------------|-----------------------|---------------------------------------------------------------------------------------------------------|
-| config                        | -               | -                    | -                             | `--config`            | Configuration file                                                                                      |
-| dbcfile                       | -               | [can].dbc            | DBC_FILE                      | `--dbcfile`           | DBC file used for parsing CAN traffic                                                                   |
-| dumpfile                      | -               | [can].candumpfile    | CANDUMP_FILE                  | `--dumpfile`          | Replay recorded CAN traffic from dumpfile                                                               |
-| canport                       | -               | [can].port           | CAN_PORT                      | `--canport`           | Read from this CAN interface                                                                            |
-| use-j1939                     | False           | [can].j1939          | USE_J1939                     | `--use-j1939`         | Use J1939                                                                                               |
-| use-socketcan                 | False           | -                    | -                             | `--use-socketcan`     | Use SocketCAN (overriding any use of --dumpfile)                                                        |
-| mapping                       | mapping/vss_3.1.1/vss_dbc.json    | [general].mapping    | MAPPING_FILE                  | `--mapping`           | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
-| server-type                   | kuksa_databroker | [general].server_type | SERVER_TYPE                 | `--server-type`       | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
-| DAPR_GRPC_PORT                | -               | -                    | DAPR_GRPC_PORT                | -                     | Override broker address & connect to DAPR sidecar @ 127.0.0.1:DAPR_GRPC_PORT                            |
-| VEHICLEDATABROKER_DAPR_APP_ID | -               | -                    | VEHICLEDATABROKER_DAPR_APP_ID | -                     | Add dapr-app-id metadata                                                                                |
+| parameter                     | default value    | config file                   | Env var      | command line argument | description                                                                                             |
+|-------------------------------|------------------|-------------------------------|--------------|-----------------------|---------------------------------------------------------------------------------------------------------|
+| config                        | -                | -                             | -            | `--config`           | Configuration file  |
+| dbcfile                       | -                | [can].dbc                     | DBC_FILE     | `--dbcfile`          | DBC file used for parsing CAN traffic |
+| dumpfile                      | -                | [can].candumpfile             | CANDUMP_FILE | `--dumpfile`         | Replay recorded CAN traffic from dumpfile |
+| canport                       | -                | [can].port                    | CAN_PORT     | `--canport`          | Read from this CAN interface  |
+| use-j1939                     | False            | [can].j1939                   | USE_J1939    | `--use-j1939`        | Use J1939. See below for Env var usage |
+| use-socketcan                 | False            | -                             | -            | `--use-socketcan`    | Use SocketCAN (overriding any use of --dumpfile) |
+| mapping                       | mapping/vss_3.1.1/vss_dbc.json | [general].mapping | MAPPING_FILE | `--mapping`        | Mapping file used to map CAN signals to databroker datapoints. Take a look on usage of the mapping file |
+| strict                        | False            | -                             | -            | `--lax-dbc-strict`  | Disable strict parsing of dbc file |
+| server-type                   | kuksa_val_server | [general].server_type         | SERVER_TYPE  | `--server-type`     | Which type of server the feeder should connect to (kuksa_val_server or kuksa_databroker |
+| ip (kuksa_databroker)         | 127.0.0.1        | [kuksa_databroker].ip         | VDB_ADDRESS,<br /> DAPR_GRPC_PORT | -| Databroker IP address, See below for Env var usage |
+| port (kuksa_databroker)       | 55555            | [kuksa_databroker].port       | VDB_ADDRESS,<br /> DAPR_GRPC_PORT | -| Databroker port, See below for Env var usage |
+| protocol (kuksa_databroker)   | grpc             | [kuksa_databroker].protocol   | -            | -                     | Configuration currently ignored |
+| insecure (kuksa_databroker)   | True             | [kuksa_databroker].insecure   | -            | -                     | Configuration currently ignored |
+| ip (kuksa_val_server)         | localhost        | [kuksa_val_server].ip         | -            | -                     | KUKSA.val Server IP address |
+| port (kuksa_val_server)       | 8090             | [kuksa_val_server].port       | -            | -                     | KUKSA.val Server port |
+| protocol (kuksa_val_server)   | ws               | [kuksa_val_server].protocol   | -            | -                     | Configuration currently ignored |
+| insecure (kuksa_val_server)   | False            | [kuksa_val_server].insecure   | -            | -                     | Configuration currently ignored |
+| dapr-app-id | -               | -                | -                             | VEHICLEDATABROKER_DAPR_APP_ID | -    | Add dapr-app-id metadata |
 
 Configuration options have the following priority (highest at top).
 
@@ -123,6 +131,25 @@ Configuration options have the following priority (highest at top).
 2. environment variable
 3. configuration file
 4. default value
+
+### USE_J1939
+
+This environment variable indicates if J1939 mode shall be used, and shall be `1` to indicate that J1939 mode shall be used.
+All other values will result in that J1939 mode is not used.
+
+
+### VDB_ADDRESS
+
+This environment variable sets both IP address and port for the Databroker, and shall have the format `<ip-address>:<port>`.
+
+Example: `127.0.0.1:55555`
+
+### DAPR_GRPC_PORT
+
+This environment variable specifies the port to use for Databroker and sets the IP address to `127.0.0.1`.
+It shall have the format `<port>`.
+
+Example:`55555`
 
 ## Using kuksa-val-server
 
