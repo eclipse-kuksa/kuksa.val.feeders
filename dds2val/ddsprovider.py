@@ -23,7 +23,7 @@ async def main():
     else:
         grpc_metadata = None
 
-    databroker_address = "127.0.0.1:" + os.environ.get("DAPR_GRPC_PORT", "55555")
+    databroker_address = os.environ.get("VDB_ADDRESS", "127.0.0.1:") + os.environ.get("DAPR_GRPC_PORT", "55555")
 
     mappingfile = os.environ.get(
         "MAPPING_FILE", str(Path(__file__).parent / "mapping.yml")
