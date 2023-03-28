@@ -9,8 +9,8 @@ log = logging.getLogger("ddsprovider")
 
 async def main():
     """Perform the main function activities."""
-    logging.basicConfig(level=logging.DEBUG)
-    log.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
+    log.setLevel(logging.INFO)
 
     console_logger = logging.StreamHandler()
     log.addHandler(console_logger)
@@ -23,7 +23,11 @@ async def main():
     else:
         grpc_metadata = None
 
-    databroker_address = os.environ.get("VDB_ADDRESS", "127.0.0.1:") + os.environ.get("DAPR_GRPC_PORT", "55555")
+    if os.environ.get("DAPR_GRPC_PORT"):
+        port = os.environ.get("DAPR_GRPC_PORT")
+    else:
+        port = os.environ.get("VDB_PORT", "55555")
+    databroker_address = os.environ.get("VDB_ADDRESS", "127.0.0.1:") + port
 
     mappingfile = os.environ.get(
         "MAPPING_FILE", str(Path(__file__).parent / "mapping.yml")
