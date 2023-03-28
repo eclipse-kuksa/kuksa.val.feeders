@@ -27,7 +27,7 @@ Choose from local build or contanerization via docker.
 These steps are necessary:
 
 1. Run an instance of databroker aka: `docker run -it --rm --net=host ghcr.io/eclipse/kuksa.val/databroker:master`
-2. Start the KML replay with an active local python virtual environment: `pip install requirements/requirements-kml.txt && cd kml && python3 dds_kmlreplay.py directions.kml`
+2. Start the KML replay with an active local python virtual environment (see [KML replay section](#kml-replay))
 3. Start the DDS provider with either: `docker run --rm -it --net=host ddsprovider:latest` or with an active local python virtual environment: `python3 ddsprovider.py`
 
 ## Configure the DDS provider
@@ -37,9 +37,10 @@ Configuration for the DDS provider is solved through setting environment variabl
 | Environment variable          | default value | description                                                                                                                                      |
 | ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | VEHICLEDATABROKER_DAPR_APP_ID | None          | DAPR ID for Vehicle App to look for. For more information to Vehicle Apps visit [Velocitas](https://eclipse-velocitas.github.io/velocitas-docs/) |
-| VDB_ADDRESS                   | 127.0.0.1     | Address where to look for (Vehicle) Databroker                                                                                                   |
-| DAPR_GRPC_PORT                | 55555         | Port where to look for (Vehicle) Databroker. If [DAPR](https://dapr.io/) gets used port of DAPR Sidecar where to look                            |
+| VDB_ADDRESS                   | 127.0.0.1     | Address where to look for (vehicle) databroker                                                                                                   |
+| DAPR_GRPC_PORT                | None          | If [DAPR](https://dapr.io/) gets used port of DAPR Sidecar. Overwrites VDB_PORT variable                                                         |
 | MAPPING_FILE                  | mapping.yml   | Place of mapping file from DDS to VSS                                                                                                            |
+| VDB_PORT                      | 55555         | On which port the (vehicle) databroker is expected. If you want to use DAPR use DAPR_GRPC_PORT.                                                  |
 
 ## Overall sequence
 
