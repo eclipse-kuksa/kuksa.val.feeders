@@ -1,0 +1,5 @@
+target,Vehicle.Chassis.ParkingBrake.IsEngaged,false,0
+current,Vehicle.Chassis.ParkingBrake.IsEngaged,true,0
+current,Vehicle.Speed,27,1
+current,Vehicle.Speed,48,1
+current,Vehicle.Speed,24,1
