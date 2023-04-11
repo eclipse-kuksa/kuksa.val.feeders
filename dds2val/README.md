@@ -23,7 +23,7 @@ The DDS provider provides data from an DDS middleware/API. For further understan
 
 ## How to run
 
-Choose from local build or contanerization via docker.
+Choose from local build or containerization via docker.
 These steps are necessary:
 
 1. Run an instance of databroker aka: `docker run -it --rm --net=host ghcr.io/eclipse/kuksa.val/databroker:master`
