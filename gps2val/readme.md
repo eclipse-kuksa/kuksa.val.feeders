@@ -16,30 +16,44 @@ gpsd -N udp://0.0.0.0:29998
 usage: gpsd_feeder.py [-h] [--host [HOST]] [--port [PORT]] [--protocol [PROTOCOL]] [--insecure [INSECURE]] [--certificate [CERTIFICATE]] [--cacertificate [CACERTIFICATE]] [--token [TOKEN]]
                       [--file [FILE]] [--gpsd_host [GPSD_HOST]] [--gpsd_port [GPSD_PORT]] [--interval [INTERVAL]]
 
-options:  
->-h, --help            show this help message and exit  
->--host [HOST]         Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1  
->--port [PORT]         Specify the port where too look for KUKSA.val server/databroker; default: 8090  
+options:
+>-h, --help            show this help message and exit
+>--host [HOST]         Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1
+>--port [PORT]         Specify the port where too look for KUKSA.val server/databroker; default: 8090
 >--protocol [PROTOCOL]
-                      If you want to connect to KUKSA.val server specify ws. If you want to connect to KUKSA.val databroker specify grpc; default: ws  
+                      If you want to connect to KUKSA.val server specify ws. If you want to connect to KUKSA.val databroker specify grpc; default: ws
 >--insecure [INSECURE]
-                      For KUKSA.val server specify False, for KUKSA.val databroker there is currently no security so specify True; default: False  
+                      For KUKSA.val server specify False, for KUKSA.val databroker there is currently no security so specify True; default: False
 >--certificate [CERTIFICATE]
-                      Specify the path to your Client.pem file; default: Client.pem  
+                      Specify the path to your Client.pem file; default: Client.pem
 >--cacertificate [CACERTIFICATE]
-                      Specify the path to your CA.pem; default: CA.pem  
->--token [TOKEN]       Specify the path to your JWT token; default: all-read-write.json  
->--file [FILE]         Specify the path to your config file; default: config/gpsd_feeder.ini  
+                      Specify the path to your CA.pem; default: CA.pem
+>--token [TOKEN]       Specify the JWT token or the path to your JWT token; default: token information not specified
+>--file [FILE]         Specify the path to your config file; default: not specifed
 >--gpsd_host [GPSD_HOST]
-                      Specify the host for gpsd to start on; default: 127.0.0.1  
+                      Specify the host for gpsd to start on; default: 127.0.0.1
 >--gpsd_port [GPSD_PORT]
-                      Specify the port for gpsd to start on; default: 2948  
+                      Specify the port for gpsd to start on; default: 2948
 >--interval [INTERVAL]
-                      Specify the interval time for feeding gps data; default: 1  
+                      Specify the interval time for feeding gps data; default: 1
+
+A template config file that can be used together with the `--file` option
+exists in [config/gpsd_feeder.ini](config/gpsd_feeder.ini). Note that if `--file` is specified all other options
+are ignored, instead the values in the config file or default values specified by kuksa-client will be used.
 
 ```
 pip install -r requirements.txt
 python gpsd_feeder.py
+```
+
+## Authorization
+
+gpsd_feeder will try to authenticate itself towards the KUKSA.val Server/Databroker if a token is given.
+Note that the KUKSA.val Databroker by default does not require authentication.
+
+An example for authorizing against KUKSA.val Databroker using an example token is shown below.
+```
+python gpsd_feeder.py --protocol grpc --port 55555 --insecure true --token /home/user/kuksa.val/jwt/provide-all.token
 ```
 
 ### Using docker
@@ -114,4 +128,3 @@ sudo systemctl restart apparmor
 ```
 
 and try again
-
