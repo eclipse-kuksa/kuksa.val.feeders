@@ -1,5 +1,5 @@
 # /********************************************************************************
-# * Copyright (c) 2022 Contributors to the Eclipse Foundation
+# * Copyright (c) 2022,2023 Contributors to the Eclipse Foundation
 # *
 # * See the NOTICE file(s) distributed with this work for additional
 # * information regarding copyright ownership.
@@ -20,7 +20,7 @@ ARG BUILDPLATFORM
 
 RUN echo "-- Running on $BUILDPLATFORM, building for $TARGETPLATFORM"
 
-RUN apt-get update -qqy && apt-get upgrade -qqy && apt-get install -qqy binutils g++
+RUN apt-get update -qqy && apt-get upgrade -qqy && apt-get install -qqy binutils g++ patchelf
 
 COPY . /
 
@@ -31,7 +31,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
     && pip3 install --no-cache-dir -r requirements.txt
 
-RUN pip3 install wheel scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
+RUN pip3 install wheel scons && pip3 install pyinstaller==5.9.0 staticx
 
 # By default we use certificates and tokens from kuksa_certificates, so they must be included
 RUN pyinstaller --collect-data kuksa_certificates --hidden-import can.interfaces.socketcan --clean -F -s dbcfeeder.py
