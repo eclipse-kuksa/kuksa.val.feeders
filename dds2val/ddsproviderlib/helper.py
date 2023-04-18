@@ -107,7 +107,7 @@ class Ddsprovider:
         self._mapper = None
         self._exit_stack = contextlib.ExitStack()
 
-    async def start(self, databroker_address, grpc_metadata, mappingfile):
+    async def start(self, databroker_address, grpc_metadata, mappingfile, token):
         """Actions done.
 
         1. Creates a GRPC channel to talk to databroker
@@ -119,7 +119,9 @@ class Ddsprovider:
         host, port = databroker_address.split(":")
 
         try:
-            vss_client = self._exit_stack.enter_context(VSSClient(host=host, port=port))
+            vss_client = self._exit_stack.enter_context(
+                VSSClient(host=host, port=port, token=token)
+            )
         except VSSClientError as kuksa_error:
             log.error(kuksa_error)
             return
