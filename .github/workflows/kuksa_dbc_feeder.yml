@@ -24,6 +24,10 @@ on:
   workflow_dispatch:
 
 jobs:
+  checkrights:
+    uses: ./.github/workflows/check_push_rights.yml
+    secrets: inherit
+
   build-can-feeder-image:
     name: "Build dbc provider image"
     runs-on: self-hosted
