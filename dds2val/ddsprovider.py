@@ -7,6 +7,7 @@ from ddsproviderlib import helper
 
 log = logging.getLogger("ddsprovider")
 
+
 async def main():
     """Perform the main function activities."""
     logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,14 @@ async def main():
         )
     else:
         grpc_metadata = None
+
+    if os.environ.get("TOKEN"):
+        token = os.environ.get("TOKEN")
+    else:
+        token = None
+        log.info(
+            "No token specified. This means no connection to a server/databroker with enabled authorization is possible"
+        )
 
     if os.environ.get("DAPR_GRPC_PORT"):
         port = os.environ.get("DAPR_GRPC_PORT")
@@ -47,6 +56,7 @@ async def main():
         databroker_address=databroker_address,
         grpc_metadata=grpc_metadata,
         mappingfile=mappingfile,
+        token=token,
     )
 
 

@@ -41,6 +41,7 @@ Configuration for the DDS provider is solved through setting environment variabl
 | DAPR_GRPC_PORT                | None          | If [DAPR](https://dapr.io/) gets used port of DAPR Sidecar. Overwrites VDB_PORT variable                                                         |
 | MAPPING_FILE                  | mapping.yml   | Place of mapping file from DDS to VSS                                                                                                            |
 | VDB_PORT                      | 55555         | On which port the (vehicle) databroker is expected. If you want to use DAPR use DAPR_GRPC_PORT.                                                  |
+| TOKEN                         | None          | JWT token which will get used to authorize to databroker                                                                                         |
 
 ## Overall sequence
 
