@@ -3,4 +3,4 @@ pytest-html
 pytest-cov
 pytest-asyncio
 py
-kuksa-client
+kuksa-client > 0.3

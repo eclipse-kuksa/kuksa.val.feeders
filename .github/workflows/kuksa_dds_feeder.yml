@@ -64,7 +64,7 @@ jobs:
           type=oci,dest=./dds2val_amd64.tar
         context: ./dds2val
         file: ./dds2val/Dockerfile
-        build-args: | 
+        build-args: |
           TARGETPLATFORM=linux/amd64
         tags: ${{ github.sha }}
         labels: |
@@ -87,7 +87,7 @@ jobs:
           type=oci,dest=./dds2val_arm64.tar
         context: ./dds2val
         file: ./dds2val/Dockerfile
-        build-args: | 
+        build-args: |
           TARGETPLATFORM=linux/arm64
           TARGETARCH=arm64
         tags: ${{ github.sha }}
@@ -104,6 +104,6 @@ jobs:
     - name: Run dds tests
       run: |
         cd dds2val
-        pip3 install --no-cache-dir -r requirements/requirements.txt -r requirements/requirements-kml.txt -r requirements/requirements-test.txt
+        pip3 install --no-cache-dir --pre -r requirements/requirements.txt -r requirements/requirements-kml.txt -r requirements/requirements-test.txt
         ./ddsproviderlib/idls/generate_py_dataclass.sh
         python -m pytest tests/*

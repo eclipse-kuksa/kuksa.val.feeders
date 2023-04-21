@@ -1,6 +1,6 @@
 # feeder
 cyclonedds
-kuksa-client
+kuksa-client > 0.3
 # mapper
 pyyaml
 py-expression-eval
