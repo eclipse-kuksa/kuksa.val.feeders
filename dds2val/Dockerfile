@@ -35,7 +35,7 @@ ENV TARGETARCH=$TARGETARCH
 RUN chmod u+x setup_arm_build.sh
 RUN bash setup_arm_build.sh
 ENV PATH="/cyclonedds/install/bin:$PATH"
-RUN pip3 install --no-cache-dir -r requirements/requirements.txt
+RUN pip3 install --no-cache-dir --pre -r requirements/requirements.txt
 
 RUN pip3 install scons && pip3 install pyinstaller patchelf==0.17.0.0 staticx
 WORKDIR /ddsproviderlib/idls
