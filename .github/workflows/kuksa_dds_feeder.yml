@@ -20,7 +20,7 @@ on:
       - "dds2val/**"
   workflow_call:
   workflow_dispatch:
-  
+
 jobs:
   check-dds-feeder:
     name: "Check DDS feeder"
@@ -76,7 +76,7 @@ jobs:
         name: Container image
         path: ${{github.workspace}}/dds2val_amd64.tar
         retention-days: 1
-        
+
     - name: build linux/arm64 docker image
       id: image_build_arm64
       uses: docker/build-push-action@v2
