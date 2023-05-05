@@ -29,7 +29,7 @@ class TestDDSProvider(unittest.TestCase):
     def setUp(self):
         self.mappingfile = (
             Path(__file__).parent.parent.parent
-            / "mapping.yml"
+            / "mapping/latest/mapping.yml"
         )
         self.grpcmetadata = "vehicledatabroker"
         self.dapr_grpc_port = "127.0.0.1:55555"
@@ -45,7 +45,7 @@ class TestDDSProvider(unittest.TestCase):
         """Checks if registered values match the mapping file."""
         calls = [
             mock.call(
-                "Vehicle.Cabin.Lights.AmbientLight", "INT8", "Ambient light value"
+                "Vehicle.Cabin.Light.PerceivedAmbientLight", "INT8", "Ambient light value"
             ),
             mock.call("Vehicle.CurrentLocation.Latitude", "FLOAT", "Latitude value"),
             mock.call("Vehicle.CurrentLocation.Longitude", "FLOAT", "Longitude value"),
@@ -172,7 +172,7 @@ class TestDDSProvider(unittest.TestCase):
 
         reader = mock.Mock(spec=DataReader)
         reader.take_next.return_value = 10
-        reader.topic.get_name.return_value = "Cabin_Lights_Ambient_Light"
+        reader.topic.get_name.return_value = "Cabin_Light_Ambient_Light"
 
         mock_getattr.side_effect = AttributeError()
 

@@ -7,7 +7,7 @@ The DDS provider provides data from an DDS middleware/API. For further understan
 ### local build
 
 1. `python3 -m venv env && source env/bin/activate`
-2. `pip install -r requirements.txt`
+2. `pip install -r requirements/requirements.txt`
 3. `chmod u+x ddsproviderlib/idls/generate_py_dataclass.sh`
 4. `./ddsproviderlib/idls/generate_py_dataclass.sh`
 
@@ -17,8 +17,10 @@ The DDS provider provides data from an DDS middleware/API. For further understan
 
 ### KML replay
 
-1. `python3 -m venv env && source env/bin/activate`
-2. `pip install -r requirements-kml.txt`
+*This requires that you already haev created the virtual environment as described in "local build" above*
+
+1. `source env/bin/activate`
+2. `pip install -r requirements/requirements-kml.txt`
 3. `cd kml && python3 dds_kmlreplay.py directions.kml`
 
 ## How to run
@@ -39,7 +41,7 @@ Configuration for the DDS provider is solved through setting environment variabl
 | VEHICLEDATABROKER_DAPR_APP_ID | None          | DAPR ID for Vehicle App to look for. For more information to Vehicle Apps visit [Velocitas](https://eclipse-velocitas.github.io/velocitas-docs/) |
 | VDB_ADDRESS                   | 127.0.0.1     | Address where to look for (vehicle) databroker                                                                                                   |
 | DAPR_GRPC_PORT                | None          | If [DAPR](https://dapr.io/) gets used port of DAPR Sidecar. Overwrites VDB_PORT variable                                                         |
-| MAPPING_FILE                  | mapping.yml   | Place of mapping file from DDS to VSS                                                                                                            |
+| MAPPING_FILE                  | mapping/latest/mapping.yml   | Place of mapping file from DDS to VSS                                                                                                            |
 | VDB_PORT                      | 55555         | On which port the (vehicle) databroker is expected. If you want to use DAPR use DAPR_GRPC_PORT.                                                  |
 | TOKEN                         | None          | JWT token which will get used to authorize to databroker; You can set on linux through `export TOKEN=$(< PATH_TO_kuksa.val/jwt/provide-all.token)` or `export TOKEN=<content of a file>`|                                                                                         |
 
@@ -72,5 +74,5 @@ end
 
 ## How to run the tests
 
-1. create virtual python environment (`python3 -m venv testEnv && source testEnv/bin/activate && pip install -r requirements/requirements.txt requirements/requirements-test.txt requirements/requirements-kml.txt`)
+1. create virtual python environment (`python3 -m venv testEnv && source testEnv/bin/activate && pip install -r requirements/requirements.txt -r requirements/requirements-test.txt -r requirements/requirements-kml.txt`)
 2. terminal 2: `source testEnv/bin/activate && pytest --html=report.html --self-contained-html --cov=. tests/* --cov-report html --cov-report xml`

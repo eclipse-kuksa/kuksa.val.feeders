@@ -12,7 +12,6 @@
 #################################################################################
 
 import unittest
-from pathlib import Path
 from unittest import mock
 
 import kuksa_client
@@ -30,7 +29,7 @@ class TestFeederBroker(unittest.TestCase):
         # Check Behaviour for signals not registered in broker
         mock_client.get_metadata.return_value = {}
         updates = {
-            "Vehicle.Cabin.Lights.AmbientLight": Metadata(
+            "Vehicle.Cabin.Light.PerceivedAmbientLight": Metadata(
                 data_type=DataType.INT8, description="Ambient light value"
             )
         }
@@ -38,7 +37,7 @@ class TestFeederBroker(unittest.TestCase):
 
         self.assertTrue(
             provider.register(
-                "Vehicle.Cabin.Lights.AmbientLight", "INT8", "Ambient light value"
+                "Vehicle.Cabin.Light.PerceivedAmbientLight", "INT8", "Ambient light value"
             )
         )
         mock_client.set_metadata.assert_called_with(updates=updates, metadata=None)
@@ -55,7 +54,7 @@ class TestFeederBroker(unittest.TestCase):
         )
         self.assertFalse(
             provider.register(
-                "Vehicle.Cabin.Lights.AmbientLight", "INT8", "Ambient light value"
+                "Vehicle.Cabin.Light.PerceivedAmbientLight", "INT8", "Ambient light value"
             )
         )
 
@@ -74,7 +73,7 @@ class TestFeederBroker(unittest.TestCase):
         )
         self.assertFalse(
             provider.register(
-                "Vehicle.Cabin.Lights.AmbientLight", "INT8", "Ambient light value"
+                "Vehicle.Cabin.Light.PerceivedAmbientLight", "INT8", "Ambient light value"
             )
         )
 
@@ -87,7 +86,7 @@ class TestFeederBroker(unittest.TestCase):
         provider = Provider(
             vss_client=kuksa_client.grpc.VSSClient(host="127.0.0.1", port="55555")
         )
-        provider._name_to_type = {"Vehicle.Cabin.Lights.AmbientLight": "UINT8"}
+        provider._name_to_type = {"Vehicle.Cabin.Light.PerceivedAmbientLight": "UINT8"}
         self.assertFalse(
-            provider.update_datapoint("Vehicle.Cabin.Lights.AmbientLight", 20)
+            provider.update_datapoint("Vehicle.Cabin.Light.PerceivedAmbientLight", 20)
         )

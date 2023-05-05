@@ -23,12 +23,12 @@ class TestMapper(unittest.TestCase):
     def setUp(self):
         mappingfile = (
             Path(__file__).parent.parent.parent
-            / "mapping.yml"
+            / "mapping/latest/mapping.yml"
         )
         self.mapper = Vss2DdsMapper(str(mappingfile))
 
     def test_contains_method(self):
-        assert "Vehicle.Cabin.Lights.AmbientLight" in self.mapper
+        assert "Vehicle.Cabin.Light.PerceivedAmbientLight" in self.mapper
 
     def test_getitem_method(self):
-        assert self.mapper["Vehicle.Cabin.Lights.AmbientLight"] is not None
+        assert self.mapper["Vehicle.Cabin.Light.PerceivedAmbientLight"] is not None

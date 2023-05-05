@@ -46,14 +46,22 @@ async def run_dds_feeder_and_send_dds_msg(data, topic_name, topic_type):
 async def test_ddsprovider_start():
     "Test case to verify data send on dds bus is received in broker"
 
-    databroker = subprocess.Popen(['docker', 'run', '--net=host', 'ghcr.io/eclipse/kuksa.val/databroker:master'], stdin=subprocess.PIPE,
-                     stdout=subprocess.PIPE)
-    # check if darabroker is up and running then progress
+    # This is a bit risky - it is not certain that the latest "master" of databroker is compatible with the version
+    # of ddsproviderlib we are testing. A better approach would be to specify a particular version, but
+    # we do not yet have any good version handling model with release candidates.
+    # Anyway - it is important that the databroker use a compatible VSS model.
+    os.system("mkdir -p /tmp/ddsprovidertest")
+    os.system("cp mapping/latest/vss.json /tmp/ddsprovidertest/vss.json")
+    databroker = subprocess.Popen(['docker', 'run', '--net=host', '-v', '/tmp/ddsprovidertest/:/ddsprovidertest',
+                                   'ghcr.io/eclipse/kuksa.val/databroker:master', '--metadata',
+                                   '/ddsprovidertest/vss.json'], stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
+    # check if databroker is up and running then progress
     building = True
-    while(building):
-        try:    
-                async with VSSClient('127.0.0.1', 55555) as client:
-                    building = False
+    while (building):
+        try:
+            async with VSSClient('127.0.0.1', 55555) as client:
+                building = False
         except VSSClientError:
             time.sleep(2)
 
@@ -69,6 +77,7 @@ async def test_ddsprovider_start():
     lat = response["Vehicle.CurrentLocation.Latitude"].value
     assert lat == 52.25
     databroker.terminate()
+    os.system("rm -rf /tmp/ddsprovidertest")
 
 
 def create_NavSatFix_dds_messages(data):

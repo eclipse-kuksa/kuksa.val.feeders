@@ -166,7 +166,7 @@ class Ddsprovider:
             topic = Topic(
                 participant,
                 topic_name,
-                # data classes are improted under the Vehicle folder
+                # data classes are imported under the Vehicle folder
                 # Attention: find a better way than "eval", using eval is risky
                 # pylint: disable=eval-used
                 eval(dataclass_name),
