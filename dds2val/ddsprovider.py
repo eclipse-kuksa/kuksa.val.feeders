@@ -54,7 +54,7 @@ async def main():
     databroker_address = os.environ.get("VDB_ADDRESS", "127.0.0.1:") + port
 
     mappingfile = os.environ.get(
-        "MAPPING_FILE", str(Path(__file__).parent / "mapping.yml")
+        "MAPPING_FILE", str(Path(__file__).parent / "mapping/latest/mapping.yml")
     )
 
     ddsprovider = helper.Ddsprovider()

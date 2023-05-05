@@ -1,0 +1,63 @@
+---
+Vehicle.Cabin.Light.PerceivedAmbientLight:
+  description: "Ambient light value"
+  databroker:
+    datatype: INT8 # INT8 number taken from types_pb2.py
+  source:
+    Cabin_Light_Ambient_Light: # DDS topic which is implementation specific
+      transform:
+        math: {}
+        formula:
+          nominator: 1
+          denominator: 1
+          offset: 0
+      # DDS type name defined in generated data class
+      typename: Vehicle.Cabin.Light.PerceivedAmbientLight
+      # Subelement to pick data for complex dds type,
+      # default name in vss is 'value'
+      element: value
+
+Vehicle.CurrentLocation.Latitude:
+  description: "Latitude value"
+  databroker:
+    datatype: FLOAT # FLOAT number taken from types_pb2.py
+  source:
+    Nav_Sat_Fix: # DDS topic name
+      transform:
+        math: {}
+        formula:
+          nominator: 1
+          denominator: 1
+          offset: 0
+      typename: sensor_msgs.msg.NavSatFix
+      element: latitude
+
+Vehicle.CurrentLocation.Longitude:
+  description: "Longitude value"
+  databroker:
+    datatype: FLOAT
+  source:
+    Nav_Sat_Fix: # DDS topic name
+      transform:
+        math: {}
+        formula:
+          nominator: 1
+          denominator: 1
+          offset: 0
+      typename: sensor_msgs.msg.NavSatFix
+      element: longitude
+
+Vehicle.CurrentLocation.Altitude:
+  description: "Altitude value"
+  databroker:
+    datatype: FLOAT
+  source:
+    Nav_Sat_Fix: # DDS topic name
+      transform:
+        math: {}
+        formula:
+          nominator: 1
+          denominator: 1
+          offset: 0
+      typename: sensor_msgs.msg.NavSatFix
+      element: altitude
