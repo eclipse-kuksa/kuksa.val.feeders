@@ -132,6 +132,7 @@ class Kuksa_Client():
         token_string = str(provider_config.get('token_or_tokenfile'))
         if token_string != "":
             log.info(f"Token information provided is: {token_string}")
+            self.client.authorize(token_string)
         else:
             log.info("No token information provided, "
                      "subsequent errors expected if Server/Databroker requires authentication!")
