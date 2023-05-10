@@ -1,5 +1,6 @@
 # VSS Provider
-The aim of this script to provide and replay VSS data into a `kuksa.val` databroker. It is possible to define a sequence of VSS signals including timing delays in a CSV-file and then to apply this sequence towards a `kuksa.val` databroker with the provider.
+The aim of this script is to provide and replay VSS data into a `kuksa.val` databroker.
+Therefore, it takes a CSV-file, containting pre-defined sequences of VSS signals including timing delays, and provides it to the 'kuksa.val' databroker.
 
 ## Usage
 The provider requires an installation of Python in version 3 and can be executed with the following commands:
