@@ -53,8 +53,10 @@ MESSAGE(STATUS "FetchContent: patching from ${CMAKE_SOURCE_DIR}/patches/ ...")
 FetchContent_Declare(
   vsomeip3
   GIT_REPOSITORY    https://github.com/COVESA/vsomeip.git
-  GIT_TAG           master
-  # GIT_TAG           3.1.20.3
+  # GIT_TAG           master
+  GIT_TAG           3.1.20.3
+  # NOTE: patching will fail if sources already patched, as workaround add "echo" before git:
+  #       PATCH_COMMAND     echo git apply ...
   PATCH_COMMAND     git apply --reject --ignore-whitespace --verbose --stat --apply
                       "${CMAKE_SOURCE_DIR}/patches/000-cmake-reduce-gcc-warnings.patch"
                       "${CMAKE_SOURCE_DIR}/patches/001-vsomeip-logger-fixes.patch"

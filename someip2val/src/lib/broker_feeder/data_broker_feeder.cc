@@ -26,35 +26,16 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "collector_client.h"
 #include "data_broker_feeder.h"
 #include "sdv/databroker/v1/collector.grpc.pb.h"
 
+#include "simple_log.h"
+
+// declare logger in root namespace
+LOGGER_STATIC_INIT("# DataBrokerFeeder::");
+
 namespace sdv {
 namespace broker_feeder {
-
-/*** LOG helpers */
-#define LEVEL_TRC   3
-#define LEVEL_DBG   2
-#define LEVEL_INF   1
-#define LEVEL_ERR   0
-
-#define MODULE_PREFIX   "# DataBrokerFeederImpl::"
-
-#define LOG_TRACE   if (dbf_debug >= LEVEL_TRC) std::cout << MODULE_PREFIX << __func__ << ": [trace] "
-#define LOG_DEBUG   if (dbf_debug >= LEVEL_DBG) std::cout << MODULE_PREFIX << __func__ << ": [debug] "
-#define LOG_INFO    if (dbf_debug >= LEVEL_INF) std::cout << MODULE_PREFIX << __func__ << ": [info] "
-#define LOG_ERROR   if (dbf_debug >= LEVEL_ERR) std::cerr << MODULE_PREFIX << __func__ << ": [error] "
-
-
-static std::string getEnvVar(const std::string& name, const std::string& defaultValue = {})
-{
-    char * value = std::getenv(name.c_str());
-    return value != nullptr? std::string(value) : std::string(defaultValue);
-}
-
-// allow suppressing multi line dumps from DataBrokerFeederImpl
-static int dbf_debug = std::stoi(getEnvVar("DBF_DEBUG", "2")); // debug by default
 
 using DatapointId = google::protobuf::int32;
 
@@ -79,7 +60,10 @@ private:
     DataBrokerFeederImpl(std::shared_ptr<CollectorClient> client, DatapointConfiguration&& dp_config)
         : client_(client)
         , dp_config_(std::move(dp_config))
-        , feeder_active_(true) {}
+        , feeder_active_(true)
+    {
+        LOGGER_SET_LEVEL_ENV("DBF_DEBUG", LEVEL_INF);
+    }
 
     ~DataBrokerFeederImpl() { Shutdown(); }
 
@@ -204,7 +188,7 @@ private:
             }
             return true;
         } else {
-            handleError(status, "DataBrokerFeederImpl::registerDatapoints");
+            client_->handleGrpcError(status, "DataBrokerFeederImpl::registerDatapoints");
             return false;
         }
     }
@@ -253,7 +237,7 @@ private:
         if (status.ok()) {
             return true;
         }
-        handleError(status, "DataBrokerFeederImpl::feedToBroker");
+        client_->handleGrpcError(status, "DataBrokerFeederImpl::feedToBroker");
         return false;
     }
 
@@ -263,37 +247,12 @@ private:
         stored_values_.insert(values.begin(), values.end());
     }
 
-    /** Log the gRPC error information and
-     *   - either trigger re-connection and "recoverable" errors
-     *   - or deactivate the feeder.
-     */
-    void handleError(const grpc::Status& status, const std::string& caller) {
-        LOG_ERROR << caller << " failed:"<< std::endl
-                  << "    ErrorCode: " << status.error_code() << std::endl
-                  << "    ErrorMsg:  '" << status.error_message() << "'" << std::endl
-                  << "    ErrorDetl: '" << status.error_details() << "'" << std::endl
-                  << "    grpcChannelState: " << client_->GetState() << std::endl;
+};
 
-        switch (status.error_code()) {
-        case GRPC_STATUS_INTERNAL:
-        case GRPC_STATUS_UNAUTHENTICATED:
-        case GRPC_STATUS_UNIMPLEMENTED:
-        // case GRPC_STATUS_UNKNOWN: // disabled due to dapr {GRPC_STATUS_UNKNOWN; ErrorMsg: 'timeout waiting for address for app id vehicledatabroker'}
-            LOG_ERROR << ">>> Unrecoverable error -> stopping broker feeder" << std::endl;
-            feeder_active_ = false;
-            break;
-        default:
-            LOG_ERROR << ">>> Maybe temporary error -> trying reconnection to broker" << std::endl;
-            break;
-        }
-        client_->SetDisconnected();
-    }
-    };
-
-    std::shared_ptr<DataBrokerFeeder> DataBrokerFeeder::createInstance(std::shared_ptr<CollectorClient> client,
-                                                                       DatapointConfiguration&& dpConfig) {
-        return std::make_shared<DataBrokerFeederImpl>(client, std::move(dpConfig));
-    }
+std::shared_ptr<DataBrokerFeeder> DataBrokerFeeder::createInstance(std::shared_ptr<CollectorClient> client,
+                                                                    DatapointConfiguration&& dpConfig) {
+    return std::make_shared<DataBrokerFeederImpl>(client, std::move(dpConfig));
+}
 
 }  // namespace broker_feeder
 }  // namespace sdv

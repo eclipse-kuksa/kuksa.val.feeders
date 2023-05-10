@@ -35,10 +35,19 @@ find_program(GRPC_CPP_PLUGIN_PROGRAM_ENV
 )
 get_filename_component(GRPC_CPP_PLUGIN_PROGRAM_ENV "${GRPC_CPP_PLUGIN_PROGRAM_ENV}" ABSOLUTE)
 
+message("--- [broker_feedder] Using protoc: ${PROTOC_PROGRAM_TEMP}")
+message("--- [broker_feedder] Using grpc_cpp_plugin: ${GRPC_CPP_PLUGIN_PROGRAM_ENV}")
+message("--- [broker_feedder] protoc version:")
+execute_process (
+  COMMAND "${PROTOC_PROGRAM_TEMP}" --version
+)
+
 add_library(data_broker_feeder
   STATIC
     data_broker_feeder.cc
     collector_client.cc
+    # logger.cc
+    actuator_subscriber.cc
 )
 
 target_link_libraries(data_broker_feeder
@@ -65,6 +74,9 @@ protobuf_generate(
     ${PROTO_SOURCE_DIR}/sdv/databroker/v1/broker.proto
     ${PROTO_SOURCE_DIR}/sdv/databroker/v1/collector.proto
     ${PROTO_SOURCE_DIR}/sdv/databroker/v1/types.proto
+
+    ${PROTO_SOURCE_DIR}/kuksa/val/v1/types.proto
+    ${PROTO_SOURCE_DIR}/kuksa/val/v1/val.proto
   IMPORT_DIRS
     ${PROTO_SOURCE_DIR}
 )
@@ -81,6 +93,7 @@ protobuf_generate(
   PROTOS
     ${PROTO_SOURCE_DIR}/sdv/databroker/v1/collector.proto
     ${PROTO_SOURCE_DIR}/sdv/databroker/v1/broker.proto
+    ${PROTO_SOURCE_DIR}/kuksa/val/v1/val.proto
   PLUGIN
     "protoc-gen-grpc=${GRPC_CPP_PLUGIN_PROGRAM_ENV}"
   IMPORT_DIRS

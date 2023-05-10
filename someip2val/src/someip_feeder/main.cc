@@ -13,9 +13,11 @@
 
 #include <csignal>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <thread>
 
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -101,6 +103,53 @@ void AdapterRun() {
     std::cerr << std::endl << std::endl;
     std::cerr << SELF "Shutting down from signal handler.." << std::endl;
     adapter.Shutdown();
+
+    // Optional: Delete all global objects allocated by libprotobuf.
+    google::protobuf::ShutdownProtobufLibrary();
+}
+
+bool get_file_size(std::string fname, size_t& fsize) {
+    struct stat statbuf;
+    if (::stat(fname.c_str(), &statbuf) == -1) {
+        perror("[get_file_size] Error accessing");
+        fsize = 0;
+        return false;
+    }
+    fsize = statbuf.st_size;
+    return true;
+}
+
+
+
+std::string read_file(std::string fname) {
+    // FIXME: Check for maximum file size before allocating memory!
+    std::fstream fs(fname);
+    std::stringstream ss;
+    ss << fs.rdbuf();
+    return ss.str();
+}
+
+void print_help(const char* application) {
+    std::cout
+        << "Usage: " << application << " <OPTIONS>\n"
+        << "\nOPTIONS:\n"
+        << "  --target=<ip>:<port>            Databroker address. [Default: localhost:55555].'\n"
+        << "  --someip-cfg <config.json>      Specify vsomeip json configuration file.\n"
+        << "  --someip-app <ApplicationName>  Specify vsomeip Application name.\n"
+        << "  --dummy-feeder                  Feed some dummy data to Databroker and exit.\n"
+        << "  --token <FILE>                  Use token from specified file to authorize with Databroker.\n"
+        << "  --help                          This message.\n"
+        << "\n\nEnvironment variables (if not set by command line arguments):\n"
+        << "  BROKER_ADDR               Override Databroker address (host:port)\n"
+        << "  BROKER_TOKEN_FILE         Use token from specified file to authorize with Databroker.\n"
+        << "  BROKER_TOKEN              Use value as token to authorize with Databroker.\n"
+        << "  VSOMEIP_CONFIGURATION     Specify vsomeip json configuration file.\n"
+        << "  VSOMEIP_APPLICATION_NAME  Specify vsomeip application name.\n"
+        << "  SOMEIP_CLI_DEBUG          SOME/IP Client debug level [0=OFF, 1=INFO, 2=DEBUG, 3=TRACE]\n"
+        << "  DBF_DEBUG                 Databroker Feeder debug levels [0=OFF, 1=INFO, 2=DEBUG, 3=TRACE]\n"
+        << "  KUKSA_DEBUG               Kuksa/GRPC debug levels [0=OFF, 1=INFO, 2=DEBUG, 3=TRACE]\n"
+        << "  WIPER_STATUS              0=disable printing of Wiper event status lines, 1=normal printing (default), 2=same line printing.\n"
+        << std::endl;
 }
 
 /**
@@ -112,67 +161,88 @@ void AdapterRun() {
 int main(int argc, char** argv) {
 
     std::string target_str = sdv::someip::getEnvironmentStr("BROKER_ADDR", "localhost:55555");
-    bool use_tcp = false;
+    std::string token_file_str = sdv::someip::getEnvironmentStr("BROKER_TOKEN_FILE", {});
+    std::string token_str;
+    std::string someip_config;
+    std::string someip_app;
     bool use_dummy_feeder = false;
 
     std::string arg_target("--target");
-    std::string arg_someip_tcp_enable("--tcp");
-    std::string arg_someip_udp_enable("--udp");
     std::string arg_someip_cfg("--someip-cfg");
     std::string arg_someip_app("--someip-app");
     std::string arg_dummy_feeder("--dummy-feeder");
-
-    // Override generic SomeIPClient settings using SOMEIP_CLI_* environment variables:
-    sdv::someip::SomeIPConfig config = sdv::someip::SomeIPClient::createEnvConfig();
+    std::string arg_token("--token");
+    std::string arg_help("--help");
 
     // FIXME: update someip settings from command line!
     for (int i = 1; i < argc; i++) {
         std::string arg_val = argv[i];
-        if (arg_someip_tcp_enable == arg_val) {
-            use_tcp = true;
-        } else if (arg_someip_udp_enable == arg_val) {
-            use_tcp = false;
-        } else if (arg_dummy_feeder == arg_val) {
-            use_tcp = false;
-        } else if (arg_someip_cfg == arg_val) {
-            if (i < argc - 1) {
-                std::string arg(argv[++i]);
-                if (!arg.empty()) {
-                    ::setenv("VSOMEIP_CONFIGURATION", arg.c_str(), true);
-                    config.app_config = arg.c_str();
-                }
-                continue;
-            }
-        } else if (arg_someip_app == arg_val) {
-            if (i < argc - 1) {
-                std::string arg(argv[++i]);
-                if (!arg.empty()) {
-                    ::setenv("VSOMEIP_APPLICATION_NAME", arg.c_str(), true);
-                    config.app_name = arg.c_str();
-                }
-                continue;
-            }
+        if (arg_help == arg_val) {
+            print_help(argv[0]);
+            exit(0);
+        } else if (arg_someip_cfg == arg_val && i < argc - 1) {
+            someip_config = argv[++i];
+            continue;
+        } else if (arg_someip_app == arg_val && i < argc - 1) {
+            someip_app = argv[++i];
+            continue;
+        } else if (arg_token == arg_val && i < argc - 1) {
+            token_file_str = argv[++i];
+            continue;
         } else {
             size_t start_pos = arg_val.find(arg_target);
             if (start_pos != std::string::npos) {
                 start_pos += arg_target.size();
                 if (arg_val[start_pos] == '=') {
                     target_str = arg_val.substr(start_pos + 1);
+                    continue;
                 } else {
                     std::cout << "Target argument syntax is --target=<ip>:<port>" << std::endl;
-                    return 1;
+                    exit(1);
                 }
-            } else {
-                std::cerr << "Invalid argument: " << arg_val << std::endl;
             }
+            // fallback for unknown arg / missing option
+            std::cerr << "Invalid argument: " << arg_val << std::endl;
+            print_help(argv[0]);
+            exit(1);
         }
+    }
+
+    if (!token_file_str.empty()) {
+        // sanity check for token filesize
+        size_t token_size;
+        if (!get_file_size(token_file_str, token_size)) {
+            std::cerr << "Can't read token from: " << token_file_str << std::endl;
+            exit(1);
+        }
+        std::cout << "# Reading token from " << token_file_str << ", size:" << token_size << std::endl;
+        if (token_size == 0 || token_size > 16000) {
+            std::cerr << "Invliad token file size!" << std::endl;
+            exit(1);
+        }
+        token_str = read_file(token_file_str);
     }
 
     if (vsomeip::DEFAULT_MAJOR != 0) {
         std::cout << "# Warning: compiled with vsomeip::DEFAULT_MAJOR=" << std::dec << (int)vsomeip::DEFAULT_MAJOR << std::endl;
     }
+
+    // create generic SomeIPClient settings using SOMEIP_CLI_* environment variables (dumps used env vars!)
+    sdv::someip::SomeIPConfig config = sdv::someip::SomeIPClient::createEnvConfig();
+    // override config with cmdline args
+    if (!someip_config.empty()) {
+        config.app_config = someip_config.c_str();
+        ::setenv("VSOMEIP_CONFIGURATION", someip_config.c_str(), true);
+    }
+    if (!someip_app.empty()) {
+        config.app_name = someip_app.c_str();
+        ::setenv("VSOMEIP_APPLICATION_NAME", someip_app.c_str(), true);
+    }
+
+
+
     // Initialize Databroker Feeder
-    adapter.InitDataBrokerFeeder(target_str);
+    adapter.InitDataBrokerFeeder(target_str, token_str);
 
     // Crete Some/IP client instance, chek required env. variables and fallback to dummy feeder on problems
     if (!adapter.InitSomeipClient(config)) {

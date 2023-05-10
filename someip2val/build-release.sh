@@ -56,11 +56,6 @@ echo "###############################"
 conan install -if="$BUILD_DIR" $CONAN_OPT --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 # conan install -if="$BUILD_DIR" --build=missing --profile:build=default --profile:host="${SCRIPT_DIR}/toolchains/target_${TARGET_ARCH}_Release" "$SCRIPT_DIR"
 
-echo "########## Conan Info #########"
-conan --version
-echo "###############################"
-
-
 cd "$BUILD_DIR" || exit 1
 
 source ./activate.sh # Set environment variables for cross build

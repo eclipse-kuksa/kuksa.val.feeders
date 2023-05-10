@@ -19,7 +19,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && \
     cmake g++ build-essential g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu jq python3 python3-pip
 
-RUN pip3 install -U conan
+RUN pip3 install conan==1.55.0
 
 COPY . /src
 WORKDIR /src

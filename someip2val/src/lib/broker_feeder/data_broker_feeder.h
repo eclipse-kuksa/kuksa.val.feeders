@@ -53,8 +53,8 @@ public:
      * @param broker_addr address of the broker to connect to; format "<ip-address>:<port>"
      * @param dpConfig metadata and initial values of the data points to register
      */
- static std::shared_ptr<DataBrokerFeeder> createInstance(std::shared_ptr<CollectorClient> client,
-        DatapointConfiguration&& dpConfig);
+    static std::shared_ptr<DataBrokerFeeder> createInstance(std::shared_ptr<CollectorClient> client,
+            DatapointConfiguration&& dpConfig);
 
     virtual ~DataBrokerFeeder() = default;
 
@@ -66,6 +66,7 @@ public:
      * run in an own thread created by the caller.
      */
     virtual void Run() = 0;
+
     /** Terminates the running feeder */
     virtual void Shutdown() = 0;
 
@@ -75,7 +76,7 @@ public:
      * @param name Name (path) of the data point to be fed (update).
      * @param value The value to be fed
      */
- virtual void FeedValue(const std::string& name, const sdv::databroker::v1::Datapoint& value) = 0;
+    virtual void FeedValue(const std::string& name, const sdv::databroker::v1::Datapoint& value) = 0;
 
     /**
      * Try to feed a batch of data point values to the broker.

@@ -13,6 +13,7 @@
 
 #include <csignal>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <unistd.h> // access()
@@ -45,6 +46,9 @@ namespace adapter {
 #define LOG_INFO    if (log_level_ >= LEVEL_INF) std::cout << MODULE_PREFIX << __func__ << ": [info] "
 #define LOG_ERROR   if (log_level_ >= LEVEL_ERR) std::cerr << MODULE_PREFIX << __func__ << ": [error] "
 
+// if WIPER_STATUS=0, disables printing of wiper status lines
+static int print_status = sdv::someip::getEnvironmentInt("WIPER_STATUS", 1, false);
+
 /*** VSS Paths for WIPER */
 const std::string WIPER_MODE = WIPER_VSS_PATH + ".Mode";
 const std::string WIPER_FREQUENCY = WIPER_VSS_PATH + ".Frequency";
@@ -58,22 +62,26 @@ const std::string WIPER_IS_POSITION_REACHED = WIPER_VSS_PATH + ".IsPositionReach
 const std::string WIPER_IS_BLOCKED = WIPER_VSS_PATH + ".IsBlocked";
 const std::string WIPER_IS_OVERHEATED = WIPER_VSS_PATH + ".IsOverheated";
 
+std::array<std::string,3> SUBSCRIBE_ACTUATORS = {
+    WIPER_MODE,
+    WIPER_FREQUENCY,
+    WIPER_TARGET_POSITION
+};
+
 
 SomeipFeederAdapter::SomeipFeederAdapter():
     feeder_active_(false),
     databroker_addr_(),
     databroker_feeder_(nullptr),
     feeder_thread_(nullptr),
-    actuator_target_subscriber_thread_(nullptr),
-    actuator_target_subscriber_running_(false),
-    actuator_target_subscriber_context_(nullptr),
+    subscriber_thread_(nullptr),
     someip_active_(false),
     someip_thread_(nullptr),
     someip_client_(nullptr),
     someip_use_tcp_(false),
     shutdown_requested_(false)
 {
-    log_level_ = sdv::someip::getEnvironmentInt("SOMEIP_CLI_DEBUG", 1);
+    log_level_ = sdv::someip::getEnvironmentInt("SOMEIP_CLI_DEBUG", 1, false);
 }
 
 SomeipFeederAdapter::~SomeipFeederAdapter() {
@@ -82,7 +90,7 @@ SomeipFeederAdapter::~SomeipFeederAdapter() {
     LOG_TRACE << "done." << std::endl;
 }
 
-bool SomeipFeederAdapter::InitDataBrokerFeeder(const std::string &databroker_addr) {
+bool SomeipFeederAdapter::InitDataBrokerFeeder(const std::string &databroker_addr, const std::string& auth_token) {
 
     sdv::broker_feeder::DatapointConfiguration metadata = {
         {WIPER_MODE,
@@ -155,8 +163,18 @@ bool SomeipFeederAdapter::InitDataBrokerFeeder(const std::string &databroker_add
     };
 
     LOG_INFO << "Connecting to " << databroker_addr << std::endl;
-    collector_client_ = sdv::broker_feeder::CollectorClient::createInstance(databroker_addr);
+
+    // debug: KUKSA_DEBUG
+    collector_client_ = sdv::broker_feeder::CollectorClient::createInstance(databroker_addr, auth_token);
+    // debug: DBF_DEBUG
     databroker_feeder_ = sdv::broker_feeder::DataBrokerFeeder::createInstance(collector_client_, std::move(metadata));
+    // debug: KUKSA_DEBUG
+    actuator_subscriber_ = sdv::broker_feeder::kuksa::ActuatorSubscriber::createInstance(collector_client_);
+    actuator_subscriber_->Init(
+        std::vector<std::string>(SUBSCRIBE_ACTUATORS.begin(), SUBSCRIBE_ACTUATORS.end()),
+        std::bind(&SomeipFeederAdapter::on_actuator_change, this, std::placeholders::_1)
+    );
+
     return true;
 }
 
@@ -183,15 +201,17 @@ bool SomeipFeederAdapter::InitSomeipClient(sdv::someip::SomeIPConfig _config) {
     }
 
     if (someip_ok) {
-        LOG_INFO << std::endl;
-        LOG_INFO << "### VSOMEIP_APPLICATION_NAME=" << someip_app << std::endl;
-        LOG_INFO << "### VSOMEIP_CONFIGURATION=" << someip_config << std::endl;
-        std::cout << "$ cat " << someip_config << std::endl;
+        std::stringstream ss;
+        ss << "\n"
+            << "### VSOMEIP_APPLICATION_NAME=" << someip_app << "\n"
+            << "### VSOMEIP_CONFIGURATION=" << someip_config << "\n"
+            << "$ cat " << someip_config << std::endl;
+        LOG_INFO << ss.str();
+
         std::string cmd;
         cmd = "cat " + std::string(someip_config);
         int rc = ::system(cmd.c_str());
         std::cout << std::endl;
-
 
         someip_client_ = sdv::someip::SomeIPClient::createInstance(
             _config,
@@ -202,110 +222,88 @@ bool SomeipFeederAdapter::InitSomeipClient(sdv::someip::SomeIPConfig _config) {
     return someip_ok;
 }
 
-void SomeipFeederAdapter::RunActuatorTargetSubscriber() {
-    LOG_INFO << "Starting actuator target subscriber..." << std::endl;
-
-    actuator_target_subscriber_running_ = true;
-    int backoff = 1;
-    while (actuator_target_subscriber_running_) {
-        auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(backoff);
-        if (!collector_client_->WaitForConnected(deadline)) {
-            LOG_INFO << "Not connected" << std::endl;
-            if (backoff < 10) {
-                backoff++;
-            }
-            continue;
-        } else {
-            backoff = 1;
+void SomeipFeederAdapter::on_actuator_change(sdv::broker_feeder::kuksa::ActuatorValues target_values) {
+    LOG_INFO << "updated target_values: " << target_values.size() << std::endl;
+    if (log_level_ >= LEVEL_DBG) {
+        std::stringstream ss;
+        ss << "{\n";
+        for (auto a: target_values) {
+            ss  << "  - " << a.first << ": "
+                << a.second.ShortDebugString() << "\n";
         }
-
-        LOG_INFO << "Connected" << std::endl;
-
-        sdv::databroker::v1::SubscribeActuatorTargetRequest request;
-        request.add_paths(WIPER_MODE);
-        request.add_paths(WIPER_FREQUENCY);
-        request.add_paths(WIPER_TARGET_POSITION);
-
-        sdv::databroker::v1::SubscribeActuatorTargetReply reply;
-        actuator_target_subscriber_context_ = collector_client_->createClientContext();
-        std::unique_ptr<::grpc::ClientReader<sdv::databroker::v1::SubscribeActuatorTargetReply>> reader(
-            collector_client_->SubscribeActuatorTargets(actuator_target_subscriber_context_.get(), request));
-        while (reader->Read(&reply)) {
-            auto actuator_targets = reply.actuator_targets();
-            if (actuator_targets.contains(WIPER_MODE) &&
-                actuator_targets.contains(WIPER_FREQUENCY) &&
-                actuator_targets.contains(WIPER_TARGET_POSITION)) {
-
-                auto wiper_mode = actuator_targets.at(WIPER_MODE);
-                if (wiper_mode.value_case() != sdv::databroker::v1::Datapoint::ValueCase::kStringValue) {
-                    LOG_INFO << "wrong value type for " << WIPER_MODE << std::endl;
-                    continue;
-                }
-                auto wiper_freq = actuator_targets.at(WIPER_FREQUENCY);
-                if (wiper_freq.value_case() != sdv::databroker::v1::Datapoint::ValueCase::kUint32Value) {
-                    LOG_INFO << "wrong value type for " << WIPER_FREQUENCY << std::endl;
-                    continue;
-                }
-
-                auto wiper_target_position = actuator_targets.at(WIPER_TARGET_POSITION);
-                if (wiper_target_position.value_case() != sdv::databroker::v1::Datapoint::ValueCase::kFloatValue) {
-                    LOG_INFO << "wrong value type for " << WIPER_TARGET_POSITION << std::endl;
-                    continue;
-                }
-
-                auto wiper_mode_value = wiper_mode.string_value();
-                auto wiper_freq_value = wiper_freq.uint32_value();
-                auto wiper_target_position_value = wiper_target_position.float_value();
-                LOG_DEBUG << "wiper_mode_value: " << wiper_mode_value << std::endl;
-                LOG_DEBUG << "wiper_freq_value: " << std::dec << (int)wiper_freq_value << std::endl;
-                LOG_DEBUG << "wiper_target_position: " << wiper_target_position_value << std::endl;
-
-                // TODO: mode -> e_WiperMode
-                // serialize
-
-                sdv::someip::wiper::e_WiperMode mode;
-                if (!sdv::someip::wiper::wiper_mode_parse(wiper_mode_value, mode)) {
-                    LOG_ERROR << "Invalid WiperMode value: " << wiper_mode_value << std::endl;
-                    continue;
-                }
-                sdv::someip::wiper::t_WiperRequest req = { (uint8_t)wiper_freq_value, wiper_target_position_value, mode };
-                uint8_t vss_payload[WIPER_SET_PAYLOAD_SIZE];
-                if (!sdv::someip::wiper::serialize_vss_request(vss_payload, sizeof(vss_payload), req)) {
-                    LOG_ERROR << "Failed to serialize WiperRequest: "
-                            << sdv::someip::wiper::vss_request_to_string(req) << std::endl;
-                    continue;
-                }
-
-                // Send SOME/IP request
-                if (someip_client_) {
-                    // someip_client_->SendRequest(wiper_mode_value, wiper_freq_value, wiper_target_position_value);
-                    std::vector<vsomeip::byte_t> payload;
-                    payload.insert(payload.end(), &vss_payload[0], &vss_payload[sizeof(vss_payload)]);
-                    LOG_INFO << "Sending " << sdv::someip::wiper::vss_request_to_string(req) << std::endl;
-                    someip_client_->SendRequest(
-                            WIPER_VSS_SERVICE_ID,
-                            WIPER_VSS_INSTANCE_ID,
-                            WIPER_VSS_METHOD_ID,
-                            payload);
-
-                }
-            } else {
-                std::stringstream ss;
-                for (auto kv : actuator_targets) {
-                    ss << kv.first << " ";
-                }
-                LOG_INFO << "Not all actuator targets included in notification [ "
-                        << ss.str() << "]" << std::endl;
-            }
-        }
-        actuator_target_subscriber_context_ = nullptr;
-        LOG_INFO << "Disconnected" << std::endl;
+        ss << "}";
+        LOG_DEBUG << ss.str() << std::endl;
     }
-    LOG_INFO << "Exiting" << std::endl;
+
+    if (target_values.find(WIPER_MODE) == target_values.end() ||
+        target_values.find(WIPER_FREQUENCY) == target_values.end() ||
+        target_values.find(WIPER_TARGET_POSITION) == target_values.end()) {
+        LOG_ERROR << "Required target values are missing!" << std::endl;
+        return;
+    }
+
+    auto wiper_mode = target_values.at(WIPER_MODE);
+
+    // TODO: handle ValueCase.VALUE_NOT_SET withot errors
+
+    if (wiper_mode.value_case() != ::kuksa::val::v1::Datapoint::ValueCase::kString) {
+        LOG_ERROR << "wrong value type ["
+            << wiper_mode.value_case()
+            << "] for " << WIPER_MODE << std::endl;
+        return;
+    }
+    auto wiper_freq = target_values.at(WIPER_FREQUENCY);
+    if (wiper_freq.value_case() != ::kuksa::val::v1::Datapoint::ValueCase::kUint32) {
+        LOG_ERROR << "wrong value type ["
+            << wiper_freq.value_case()
+            << "] for " << WIPER_FREQUENCY << std::endl;
+        return;
+    }
+
+    auto wiper_target_position = target_values.at(WIPER_TARGET_POSITION);
+    if (wiper_target_position.value_case() != ::kuksa::val::v1::Datapoint::ValueCase::kFloat) {
+        LOG_ERROR << "wrong value type ["
+            << wiper_target_position.value_case()
+            << "] for " << WIPER_TARGET_POSITION << std::endl;
+        return;
+    }
+
+    auto wiper_mode_value = wiper_mode.string();
+    auto wiper_freq_value = wiper_freq.uint32();
+    auto wiper_target_position_value = wiper_target_position.float_();
+    LOG_DEBUG << "wiper_mode_value: " << wiper_mode_value << std::endl;
+    LOG_DEBUG << "wiper_freq_value: " << std::dec << (int)wiper_freq_value << std::endl;
+    LOG_DEBUG << "wiper_target_position: " << wiper_target_position_value << std::endl;
+
+    sdv::someip::wiper::e_WiperMode mode;
+    if (!sdv::someip::wiper::wiper_mode_parse(wiper_mode_value, mode)) {
+        LOG_ERROR << "Invalid WiperMode value: " << wiper_mode_value << std::endl;
+        return;
+    }
+    sdv::someip::wiper::t_WiperRequest req = { (uint8_t)wiper_freq_value, wiper_target_position_value, mode };
+    uint8_t vss_payload[WIPER_SET_PAYLOAD_SIZE];
+    if (!sdv::someip::wiper::serialize_vss_request(vss_payload, sizeof(vss_payload), req)) {
+        LOG_ERROR << "Failed to serialize WiperRequest: "
+                << sdv::someip::wiper::vss_request_to_string(req) << std::endl;
+        return;
+    }
+
+    // Send SOME/IP request
+    if (someip_client_) {
+        std::vector<vsomeip::byte_t> payload;
+        payload.insert(payload.end(), &vss_payload[0], &vss_payload[sizeof(vss_payload)]);
+        LOG_INFO << "Sending " << sdv::someip::wiper::vss_request_to_string(req) << std::endl;
+        someip_client_->SendRequest(
+                WIPER_VSS_SERVICE_ID,
+                WIPER_VSS_INSTANCE_ID,
+                WIPER_VSS_METHOD_ID,
+                payload);
+    }
+
 }
 
 void SomeipFeederAdapter::Start() {
-    LOG_INFO << "[SomeipFeederAdapter::" << __func__ << "] Starting adapter..." << std::endl;
+    LOG_INFO << "Starting adapter..." << std::endl;
     if (databroker_feeder_) {
         // start databropker feeder thread
         feeder_thread_ = std::make_shared<std::thread> (&sdv::broker_feeder::DataBrokerFeeder::Run, databroker_feeder_);
@@ -314,7 +312,18 @@ void SomeipFeederAdapter::Start() {
             LOG_ERROR << "Failed setting datafeeder thread name:" << rc << std::endl;
         }
     }
+    if (actuator_subscriber_) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // start target actuator subscription
+        subscriber_thread_ = std::make_shared<std::thread> (
+            &sdv::broker_feeder::kuksa::ActuatorSubscriber::Run, actuator_subscriber_);
+        int rc = pthread_setname_np(subscriber_thread_->native_handle(), "target_subscr");
+        if (rc != 0) {
+            LOG_ERROR << "Failed setting someip thread name:" << rc << std::endl;
+        }
+    }
     if (someip_active_ && someip_client_) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         // start vsomeip app "main" thread
         someip_thread_ = std::make_shared<std::thread> (&sdv::someip::SomeIPClient::Run, someip_client_);
         int rc = pthread_setname_np(someip_thread_->native_handle(), "someip_main");
@@ -322,16 +331,6 @@ void SomeipFeederAdapter::Start() {
             LOG_ERROR << "Failed setting someip thread name:" << rc << std::endl;
         }
     }
-
-    // start target actuator subscription
-    actuator_target_subscriber_thread_ = std::make_shared<std::thread> ([this]() {
-        RunActuatorTargetSubscriber();
-    });
-    int rc = pthread_setname_np(actuator_target_subscriber_thread_->native_handle(), "target_subscr");
-    if (rc != 0) {
-        LOG_ERROR << "Failed setting someip thread name:" << rc << std::endl;
-    }
-
     feeder_active_ = true;
 }
 
@@ -345,13 +344,10 @@ void SomeipFeederAdapter::Shutdown() {
     shutdown_requested_ = true;
     feeder_active_ = false;
 
-    if (actuator_target_subscriber_thread_) {
-        actuator_target_subscriber_running_ = false;
-        if (actuator_target_subscriber_context_) {
-            actuator_target_subscriber_context_->TryCancel();
-        }
+    if (subscriber_thread_ && actuator_subscriber_) {
+        LOG_INFO << "Stopping actuator subscriber..." << std::endl;
+        actuator_subscriber_->Shutdown();
     }
-
     if (feeder_thread_ && databroker_feeder_) {
         LOG_INFO << "Stopping databroker feeder..." << std::endl;
         databroker_feeder_->Shutdown();
@@ -377,8 +373,10 @@ void SomeipFeederAdapter::Shutdown() {
         LOG_TRACE << "datafeeder thread joined." << std::endl;
     }
 
-    if (actuator_target_subscriber_thread_ && actuator_target_subscriber_thread_->joinable()) {
-        actuator_target_subscriber_thread_->join();
+    if (subscriber_thread_ && subscriber_thread_->joinable()) {
+        LOG_TRACE << "Joining subscriber thread..." << std::endl;
+        subscriber_thread_->join();
+        LOG_TRACE << "subscriber thread joined." << std::endl;
     }
     LOG_TRACE << "done." << std::endl;
 }
@@ -423,22 +421,26 @@ int SomeipFeederAdapter::on_someip_message(
             vsomeip::service_t service_id, vsomeip::instance_t instance_id, vsomeip::method_t method_id,
             const uint8_t *payload, size_t payload_length)
 {
+    // TODO: Handle VSS Set response result from payload
     if (service_id == WIPER_VSS_SERVICE_ID &&
         instance_id == WIPER_VSS_INSTANCE_ID &&
         method_id == WIPER_VSS_METHOD_ID)
     {
-        LOG_INFO << "Received Response from ["
-            << std::setw(4) << std::setfill('0') << std::hex
-            << service_id << "."
-            << std::setw(4) << std::setfill('0') << std::hex
-            << instance_id << "."
-            << std::setw(4) << std::setfill('0') << std::hex
-            << method_id << "], payload ["
-            << sdv::someip::hexdump((uint8_t*)payload, payload_length) << "]"
-            << std::endl;
-
+        if (log_level_ >= LEVEL_INF) {
+            std::stringstream ss;
+            ss << "Received Response from ["
+                << std::setw(4) << std::setfill('0') << std::hex
+                << service_id << "."
+                << std::setw(4) << std::setfill('0') << std::hex
+                << instance_id << "."
+                << std::setw(4) << std::setfill('0') << std::hex
+                << method_id << "], payload ["
+                << sdv::someip::hexdump((uint8_t*)payload, payload_length) << "]";
+            LOG_INFO << ss.str() << std::endl;
+        }
         return 0;
     }
+    // ignore incoming non-wiper events
     if (service_id  != WIPER_SERVICE_ID ||
         instance_id != WIPER_INSTANCE_ID ||
         method_id   != WIPER_EVENT_ID)
@@ -456,12 +458,17 @@ int SomeipFeederAdapter::on_someip_message(
 
     sdv::someip::wiper::t_Event event;
     if (sdv::someip::wiper::deserialize_event(payload, payload_length, event)) {
-        if (someip_client_->GetConfig().debug > 0) {
+        // multiline dump
+        if (someip_client_->GetConfig().debug >= 2) {
             LOG_DEBUG << "Received "
                     << sdv::someip::wiper::event_to_string(event) << std::endl;
         }
-        // sdv::someip::wiper::print_status(std::string("### [SomeipFeederAdapter::") + __func__ + "] ", event);
-		sdv::someip::wiper::print_status(std::string("### "), event);
+        // print_status == 0: no printing
+        if (print_status == 1) {
+		    sdv::someip::wiper::print_status(std::string("### "), event);
+        } else if (print_status > 1) {
+		    sdv::someip::wiper::print_status_r(std::string("### "), event);
+        }
 
         // feed values to kuksa databroker
         sdv::broker_feeder::DatapointValues values = {
