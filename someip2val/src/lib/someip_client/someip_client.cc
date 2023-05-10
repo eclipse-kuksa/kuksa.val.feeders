@@ -44,11 +44,6 @@ namespace someip {
 #define LOG_INFO    if (config_.debug >= LEVEL_INF) std::cout << MODULE_PREFIX << name_ << ">::" << __func__ << ": [info] "
 #define LOG_ERROR   if (config_.debug >= LEVEL_ERR) std::cerr << MODULE_PREFIX << name_ << ">::" << __func__ << ": [error] "
 
-// forward decl
-std::string hexdump(uint8_t *buf, size_t size);
-std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue);
-int getEnvironmentInt(const std::string &envVar, int defaultValue);
-
 SomeIPClient::SomeIPClient(SomeIPConfig _config, message_callback_t _callback) :
     config_(_config),
     callback_(_callback),
@@ -288,7 +283,7 @@ void SomeIPClient::on_availability(vsomeip::service_t _service, vsomeip::instanc
 
 void SomeIPClient::on_message(const std::shared_ptr<vsomeip::message> &_response) {
     std::shared_ptr<vsomeip::payload> its_payload = _response->get_payload();
-    if (config_.debug > 1) {
+    if (config_.debug > 2) {
         std::stringstream its_message;
         its_message << "Received a "
                 << message_type_to_string(_response->get_message_type())
@@ -443,12 +438,14 @@ std::string message_type_to_string(vsomeip::message_type_e msg_type) {
     }
 }
 
-int getEnvironmentInt(const std::string &envVar, int defaultValue) {
+int getEnvironmentInt(const std::string &envVar, int defaultValue, bool dump) {
     const char* envValue = ::getenv(envVar.c_str());
     if (envValue) {
         try {
             int result = std::stoi(std::string(envValue), nullptr, 0);
-            std::cout << __func__ << " [env] " << envVar << " := " << envValue << std::endl;
+            if (dump) {
+                std::cout << __func__ << " [env] " << envVar << " := " << envValue << std::endl;
+            }
             return result;
         } catch(std::exception const& ex) {
             std::cerr << __func__ << " Invalid integer for " << envVar
@@ -459,10 +456,12 @@ int getEnvironmentInt(const std::string &envVar, int defaultValue) {
     return defaultValue;
 }
 
-std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue) {
+std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue, bool dump) {
     const char* value = ::getenv(envVar.c_str());
     if (value) {
-        std::cout << __func__ << " [env] " << envVar << " := " << value << std::endl;
+        if (dump) {
+            std::cout << __func__ << " [env] " << envVar << " := " << value << std::endl;
+        }
         return std::string(value);
     }
     return defaultValue;

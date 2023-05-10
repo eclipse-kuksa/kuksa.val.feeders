@@ -21,6 +21,7 @@
 
 #include "someip_client.h"
 #include "data_broker_feeder.h"
+#include "actuator_subscriber.h"
 
 namespace sdv {
 namespace adapter {
@@ -32,11 +33,11 @@ const std::string WIPER_VSS_PATH = "Vehicle.Body.Windshield.Front.Wiping.System"
 
 class SomeipFeederAdapter {
 
-  public:
+public:
     SomeipFeederAdapter();
     virtual ~SomeipFeederAdapter();
 
-    bool InitDataBrokerFeeder(const std::string &databroker_addr);
+    bool InitDataBrokerFeeder(const std::string &databroker_addr, const std::string& auth_token);
     bool InitSomeipClient(sdv::someip::SomeIPConfig _config);
 
     /**
@@ -54,17 +55,17 @@ class SomeipFeederAdapter {
      */
     void FeedDummyData();
 
-  protected:
+protected:
     int on_someip_message(
-            vsomeip::service_t service,
-            vsomeip::instance_t instance,
-            vsomeip::method_t event,
-            const uint8_t *payload,
-            size_t payload_length);
+                    vsomeip::service_t service,
+                    vsomeip::instance_t instance,
+                    vsomeip::method_t event,
+                    const uint8_t *payload,
+                    size_t payload_length);
+
+    void on_actuator_change(sdv::broker_feeder::kuksa::ActuatorValues datapoints);
 
 private:
-    void RunActuatorTargetSubscriber();
-
     std::atomic<bool> feeder_active_;
 
     std::string databroker_addr_;
@@ -75,9 +76,8 @@ private:
     std::shared_ptr<std::thread> feeder_thread_;
 
     // Actuator target subscriber
-    std::shared_ptr<std::thread> actuator_target_subscriber_thread_;
-    std::atomic<bool> actuator_target_subscriber_running_;
-    std::unique_ptr<grpc::ClientContext> actuator_target_subscriber_context_;
+    std::shared_ptr<sdv::broker_feeder::kuksa::ActuatorSubscriber> actuator_subscriber_;
+    std::shared_ptr<std::thread> subscriber_thread_;
 
     // SOME/IP client
     bool someip_use_tcp_;

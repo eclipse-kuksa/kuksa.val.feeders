@@ -14,6 +14,7 @@
     - [Local mode (single host)](#local-mode-single-host)
     - [UDP mode (2 hosts)](#udp-mode-2-hosts)
   - [Extending someip2val feeder](#extending-someip2val-feeder)
+  - [Running someip2val with Authorization](#running-someip2val-with-authorization)
 
 # SOME/IP integration in Docker containers
 
@@ -175,3 +176,7 @@ typedef std::function <
 ```
 - `SomeIPConfig` vsomeip service/instance/event_group/event values also have to be changed (e.g. via environment variables, or in code)
 - `SomeipFeederAdapter::on_someip_message()` : Example for someip payload callback, deserializing payload and feeding to Databroker
+
+## Running someip2val with Authorization
+
+Authorization support and example setup is described [here](./cert/README.md).

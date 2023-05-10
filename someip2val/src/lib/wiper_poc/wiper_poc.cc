@@ -202,6 +202,27 @@ void print_status(const std::string &prefix, const t_Event &event) {
                 event.sequenceCounter);
 }
 
+void print_status_r(const std::string &prefix, const t_Event &event) {
+    std::printf(
+            "\r%s|WiperEvent| Pos:%8.4f, DC:%5.2f, Wiping:%d, CycEnd:%d PosReach:%d, "
+            "Block:%d, Err:%d, LinErr:%d, EcuTmp:%02x, GearTmp:%02x, Seq:%02x\r",
+				prefix.c_str(),
+                event.data.ActualPosition,
+                event.data.DriveCurrent,
+                event.data.isWiping,
+                event.data.isEndingWipeCycle,
+                event.data.isPositionReached,
+
+                event.data.isBlocked,
+                event.data.isWiperError,
+                event.data.LINError,
+
+                event.data.ECUTemp,
+                event.data.TempGear,
+                event.sequenceCounter);
+                std::fflush(stdout);
+}
+
 bool serialize_vss_request(uint8_t *payload, size_t payload_size, const t_WiperRequest &reqest) {
     uint8_t tmp[4];
 
@@ -289,7 +310,7 @@ std::string vss_request_to_string(const t_WiperRequest &request) {
     std::stringstream ss;
     ss << "WiperReq: { mode:"
         << wiper_mode_to_string(request.Mode)
-        << ", freq: " << std::dec << (uint) request.Frequency
+        << ", freq:" << std::dec << (uint) request.Frequency
         << ", targetPos:" << request.TargetPosition
         << " }";
     return ss.str();

@@ -102,8 +102,10 @@ std::string bytes_to_string(const uint8_t *payload, size_t payload_size);
 bool deserialize_event(const uint8_t *payload, size_t payload_size, t_Event& event);
 bool serialize_wiper_event(const t_Event& event, uint8_t *payload, size_t payload_size);
 
+// print with new line
 void print_status(const std::string &prefix, const t_Event &event);
-
+// print on the same line
+void print_status_r(const std::string &prefix, const t_Event &event);
 
 /*************************************/
 /**  Wiper Request service helpers  **/

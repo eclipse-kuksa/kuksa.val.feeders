@@ -247,7 +247,7 @@ std::string hexdump(uint8_t *buf, size_t size);
  * @param defaultValue if envVar was not set
  * @return int result integer
  */
-int getEnvironmentInt(const std::string &envVar, int defaultValue);
+int getEnvironmentInt(const std::string &envVar, int defaultValue, bool dump=true);
 
 /**
  * @brief Get std::string value from Environment variable
@@ -256,7 +256,7 @@ int getEnvironmentInt(const std::string &envVar, int defaultValue);
  * @param defaultValue if envVar was not set
  * @return std::string result string
  */
-std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue);
+std::string getEnvironmentStr(const std::string &envVar, const std::string &defaultValue, bool dump=true);
 
 }  // namespace someip
 }  // namespace sdv
