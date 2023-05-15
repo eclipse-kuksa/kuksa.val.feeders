@@ -123,7 +123,7 @@ std::unique_ptr<grpc::ClientContext> CollectorClient::createClientContext() {
         context->AddMetadata(metadata.first, metadata.second);
         LOG_TRACE << "  AddMetadata(" << metadata.first << ", " << metadata.second << ")" << std::endl;
     }
-    LOG_DEBUG << "ClientContext created." << std::endl;
+    LOG_TRACE << "ClientContext created." << std::endl;
     return context;
 }
 
