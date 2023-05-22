@@ -46,7 +46,6 @@ add_library(data_broker_feeder
   STATIC
     data_broker_feeder.cc
     collector_client.cc
-    # logger.cc
     actuator_subscriber.cc
 )
 

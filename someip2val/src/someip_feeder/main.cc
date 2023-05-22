@@ -100,8 +100,7 @@ void AdapterRun() {
     std::cout << std::endl << SELF "Running adapter... (Press Ctrl+C to stop.)" << std::endl << std::endl;
     wait_for_signal(fd);
 
-    std::cerr << std::endl << std::endl;
-    std::cerr << SELF "Shutting down from signal handler.." << std::endl;
+    std::cerr << "\n" << SELF "Shutting down from signal handler..\n" << std::endl;
     adapter.Shutdown();
 
     // Optional: Delete all global objects allocated by libprotobuf.
