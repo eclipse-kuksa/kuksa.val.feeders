@@ -132,23 +132,24 @@ bool CollectorClient::handleGrpcError(const grpc::Status& status, const std::str
 
     bool fatal_error = true;
     std::stringstream ss;
-    ss  << caller << " failed:" << std::endl
-        << "    ErrorCode: "  << status.error_code() << std::endl
-        << "    ErrorMsg:  '" << status.error_message() << "'" << std::endl
-        << "    ErrorDet:  '" << status.error_details() << "'" << std::endl
-        << "    grpcChannelState: " << GetState() << std::endl;
-    LOG_ERROR << ss.str();
+    ss  << caller << " failed:\n"
+        << "    ErrorCode: "  << status.error_code() << "\n"
+        << "    ErrorMsg:  '" << status.error_message() << "'\n"
+        << "    ErrorDet:  '" << status.error_details() << "'\n"
+        << "    grpcChannelState: " << GetState();
+    LOG_ERROR << ss.str() << std::endl;
 
     switch (status.error_code()) {
         case GRPC_STATUS_INTERNAL:
         case GRPC_STATUS_UNAUTHENTICATED:
         case GRPC_STATUS_UNIMPLEMENTED:
         // case GRPC_STATUS_UNKNOWN: // disabled due to dapr {GRPC_STATUS_UNKNOWN; ErrorMsg: 'timeout waiting for address for app id vehicledatabroker'}
-            LOG_ERROR << ">>> Unrecoverable error -> stopping broker feeder" << std::endl;
-            fatal_error = false;
+            LOG_ERROR << ">>> Unrecoverable error -> stopping client." << std::endl;
+            fatal_error = true;
             break;
         default:
             LOG_ERROR << ">>> Maybe temporary error -> trying reconnection to broker" << std::endl;
+            fatal_error = false;
             break;
     }
     SetDisconnected();

@@ -26,7 +26,7 @@ For more details check KUKSA.val JWT tooling [README](https://github.com/eclipse
 someip2val authorizes to KUKSA.val using [someip2val.json](./someip2val.json).
 It grants permission for registering datapoints, also provide and actuate datapoints on wiper relevant VSS paths.
 
-There is already signed [sineip2val.token](./someip2val.token) by default KUKSA.val key.
+There is already signed [someip2val.token](./someip2val.token) by default KUKSA.val key.
 
 If you need to modify something in the payload, you can edit json file and then update the token with:
 
@@ -69,7 +69,7 @@ cd $(git rev-parse --show-toplevel)/someip2val/target/x86_64/release/install/bin
 ./someip_feeder --token $(git rev-parse --show-toplevel)/someip2val/cert/someip2val.token
 ```
 
-**NOTE:* Wiper events can be verbose, to disable them `export WIPER_STATUS=0`, or use `export WIPER_STATUS=2` to make them on single line.
+**NOTE:** Wiper events can be verbose, to disable them `export WIPER_STATUS=0`, or use `export WIPER_STATUS=2` to make them on single line.
 
 - Test actuator subscriber with kuksa-client:
 
