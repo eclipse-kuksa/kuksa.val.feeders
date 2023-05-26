@@ -1,1 +1,1 @@
-kuksa-client==0.3.x
+kuksa-client==0.3.1

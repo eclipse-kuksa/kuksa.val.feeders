@@ -17,13 +17,13 @@ The provider uses the [kuksa_client]() Python implementation which you need to i
 ## Arguments
 You can start the provider with the following arguments on a command line:
 
-| short argument | long argument | description | default value |
-|---- | ---- | ----- | ----|
-|-f| --file | This indicates the CSV-file containing the signals to update in the `kuksa.val` databroker. | signals.csv |
-| -a | --address | This indicates the address of `kuksa.val` databroker to connect to. | 127.0.0.1 |
-| -p | --port | This indicates the port of the `kuksa.val` databroker to connect to. | 55555 |
-| -i | --infinite | If the flag is set, the provider loops over the file until stopped, otherwise the file gets processed once. | not present/False
-| -l | --log | This sets the logging level. Possible values are: DEBUG, INFO, DEBUG, WARNING, ERROR, CRITICAL | WARNING
+| short argument | long argument | environment variable | description | default value |
+|---- | ---- | ---- |----- | ----|
+|-f| --file | PROVIDER_SIGNALS_FILE | This indicates the CSV-file containing the signals to update in the `kuksa.val` databroker. | signals.csv |
+| -a | --address | KUKSA_DATA_BROKER_ADDR | This indicates the address of `kuksa.val` databroker to connect to. | 127.0.0.1 |
+| -p | --port | KUKSA_DATA_BROKER_PORT | This indicates the port of the `kuksa.val` databroker to connect to. | 55555 |
+| -i | --infinite | PROVIDER_INFINITE | If the flag is set, the provider loops over the file until stopped, otherwise the file gets processed once. | not present/False
+| -l | --log | PROVIDER_LOG_LEVEL | This sets the logging level. Possible values are: DEBUG, INFO, DEBUG, WARNING, ERROR, CRITICAL | WARNING
 
 ## CSV File
 An example CSV-files is available in [signals.csv](signals.csv) where an example line is:
