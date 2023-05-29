@@ -125,7 +125,7 @@ jobs:
       - name: "Build someip2val container and push to ghcr.io"
         if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
         id: image_build_ghcr
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           pull: false
           push: true
@@ -140,7 +140,7 @@ jobs:
       - name: "Build someip2val container and push to ttl.sh"
         if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
         id: image_build_ttl
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           pull: false
           push: true
