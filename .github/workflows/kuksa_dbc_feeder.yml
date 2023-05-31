@@ -117,7 +117,7 @@ jobs:
         pip3 install --no-cache-dir -r requirements.txt -r requirements-dev.txt
         python -m pytest
 
-    - name: Run pylint (but accept errors for now)
+    - name: Run pylint (fail on errors and above)
       run: |
         cd dbc2val
         # First just show, never fail
