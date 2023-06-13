@@ -14,7 +14,7 @@
 
 # Specify:
 #   first argument: TARGET_ARCH = "x86_64", "rpi" or "aarch64"; default: "x86_64". "rpi" is used for compiling on raspberry pi
-#   second argument: TARGET_ARCH = "<string>; default: "$SCRIPT_DIR/target/$TARGET_ARCH/release"
+#   second argument: BUILD_DIR = "<string>; default: "$SCRIPT_DIR/target/$TARGET_ARCH/release"
 
 # shellcheck disable=SC1091
 # shellcheck disable=SC2086
