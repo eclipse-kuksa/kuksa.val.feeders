@@ -50,12 +50,12 @@ SOME/IP feeder is [COVESA / vsomeip](https://github.com/COVESA/vsomeip/) applica
 1. Install and configure conan (if needed)
     ``` bash
     sudo apt-get install -y python3 python3-pip
-    pip3 install conan
+    pip3 install "conan==1.55"
     ```
     **NOTE:** Sometimes latest conan recipe revisions are broken, but the local build succeeds using cached older revision. If build fails on CI local conan cache could be cleared to reproduce the error. Also latest recipes may require newer conan version.
     ``` bash
     rm -rf ~/.conan/data
-    pip3 install -U conan
+    pip3 install "conan==1.*"
     ```
     Last known working revisions are hardcoded in [conanfile.txt](./conanfile.txt) [requires].
 1. Install [VS Code](https://code.visualstudio.com/download). To setup proper conan environment in vs code, launch vscode using:
