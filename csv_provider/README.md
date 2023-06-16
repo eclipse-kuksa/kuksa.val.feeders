@@ -24,6 +24,8 @@ You can start the provider with the following arguments on a command line:
 | -p | --port | KUKSA_DATA_BROKER_PORT | This indicates the port of the `kuksa.val` databroker to connect to. | 55555 |
 | -i | --infinite | PROVIDER_INFINITE | If the flag is set, the provider loops over the file until stopped, otherwise the file gets processed once. | not present/False
 | -l | --log | PROVIDER_LOG_LEVEL | This sets the logging level. Possible values are: DEBUG, INFO, DEBUG, WARNING, ERROR, CRITICAL | WARNING
+|    | --cacertificate | - | Path to root CA. If defined the client will attempt to use a secure connection and identify the server using this certificate. | None
+|    | --tls-server-name | - | TLS server name, may be needed if addressing a server by IP-name. | None
 
 ## CSV File
 An example CSV-files is available in [signals.csv](signals.csv) where an example line is:
@@ -42,3 +44,17 @@ Each line in the csv file consists of the following elements:
 | signal | the name of the signal to update | Vehicle.Speed
 | value | the new value | 48 |
 | delay | Indicates the time in seconds which the provider shall wait after processing this signal. This way one can emulate the change of signals over time. | 0 |
+
+## TLS
+
+If connecting to a KUKSA.val Databroker that require a secure connection you must specify which root certificate to
+use to identify the Server by the `--cacertificate` argument. If your (test) setup use the KUKSA.val example
+certificates you must give [CA.pem](https://github.com/eclipse/kuksa.val/blob/master/kuksa_certificates/CA.pem)
+as root CA. The server name must match the name in the certificate provided by KUKSA.val Databroker.
+Due to a limitation in the gRPC client, if connecting by IP-address you may need to give a name listed in the certificate
+by the `--tls-server-name` argument. The example server certificate lists the names `Server` and `localhost`,
+so one of those names needs to be specified if connecting to `127.0.0.1`. An example is shown below:
+
+```
+python provider.py --cacertificate /home/user/kuksa.val/kuksa_certificates/CA.pem --tls-server-name Server
+```

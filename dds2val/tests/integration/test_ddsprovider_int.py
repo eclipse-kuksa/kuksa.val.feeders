@@ -54,16 +54,21 @@ async def test_ddsprovider_start():
     os.system("cp mapping/latest/vss.json /tmp/ddsprovidertest/vss.json")
     databroker = subprocess.Popen(['docker', 'run', '--net=host', '-v', '/tmp/ddsprovidertest/:/ddsprovidertest',
                                    'ghcr.io/eclipse/kuksa.val/databroker:master', '--metadata',
-                                   '/ddsprovidertest/vss.json'], stdin=subprocess.PIPE,
+                                   '/ddsprovidertest/vss.json', '--insecure'], stdin=subprocess.PIPE,
                                   stdout=subprocess.PIPE)
     # check if databroker is up and running then progress
     building = True
+    total_sleep = 0
+    sleep_time = 2
     while (building):
         try:
             async with VSSClient('127.0.0.1', 55555) as client:
                 building = False
         except VSSClientError:
-            time.sleep(2)
+            if (total_sleep > 120):
+                pytest.fail("Too long time to establish connection, ending test!")
+            time.sleep(sleep_time)
+            total_sleep += sleep_time
 
     await run_dds_feeder_and_send_dds_msg(
         create_NavSatFix_dds_messages(["52.25,12.25,0"]),

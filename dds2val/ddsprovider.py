@@ -51,13 +51,25 @@ async def main():
         port = os.environ.get("DAPR_GRPC_PORT")
     else:
         port = os.environ.get("VDB_PORT", "55555")
-    databroker_address = os.environ.get("VDB_ADDRESS", "127.0.0.1:") + port
+    databroker_address = os.environ.get("VDB_ADDRESS", "127.0.0.1") + ":" + port
 
     mappingfile = os.environ.get(
         "MAPPING_FILE", str(Path(__file__).parent / "mapping/latest/mapping.yml")
     )
 
-    ddsprovider = helper.Ddsprovider()
+    # Collect data for TLS connection, for now default is no TLS
+    # To keep backward compatibility not using TLS is default
+    if os.environ.get("VDB_ROOT_CA_PATH"):
+        root_ca_path = os.environ.get("VDB_ROOT_CA_PATH")
+    else:
+        root_ca_path = None
+
+    if os.environ.get("VDB_TLS_SERVER_NAME"):
+        tls_server_name = os.environ.get("VDB_TLS_SERVER_NAME")
+    else:
+        tls_server_name = None
+
+    ddsprovider = helper.Ddsprovider(root_ca_path, tls_server_name)
 
     # Handler for Ctrl-C and Kill signal
     def signal_handler(signal_received, _frame):

@@ -249,7 +249,7 @@ if __name__ == "__main__":
             logging.getLogger(logger).setLevel(level)
 
     manual_config = argparse.ArgumentParser()
-    manual_config.add_argument("--host",
+    manual_config.add_argument("--ip",
                                help="Specify the host where too look for KUKSA.val server/databroker; "
                                     "default: 127.0.0.1",
                                nargs='?', default="127.0.0.1")
@@ -261,16 +261,16 @@ if __name__ == "__main__":
                                     "If you want to connect to KUKSA.val databroker specify grpc; default: ws",
                                     nargs='?', default="ws")
     manual_config.add_argument("--insecure",
-                               help="For KUKSA.val server specify False, "
-                                    "for KUKSA.val databroker there is currently no security so specify True; "
-                                    "default: False",
+                               help="Specify if you want an insecure connection (i.e. without TLS)"
+                               "default: False",
                                nargs='?', default="False")
-    manual_config.add_argument("--certificate",
-                               help="Specify the path to your Client.pem file; default: Client.pem",
-                               nargs='?', default="Client.pem")
     manual_config.add_argument("--cacertificate",
-                               help="Specify the path to your CA.pem; default: CA.pem",
+                               help="Specify the path to your CA.pem; default: CA.pem. "
+                                    "Needed when not using insecure mode",
                                nargs='?', default="CA.pem")
+    manual_config.add_argument("--tls-server-name",
+                               help="TLS server name, may be needed if addressing a server by IP-name",
+                               nargs='?', default="")
     manual_config.add_argument("--token",
                                help="Specify the JWT token string or the path to your JWT token; default: "
                                     "authentication information not specified",
@@ -293,12 +293,12 @@ if __name__ == "__main__":
         config_object = configparser.ConfigParser()
         log.info("No configuration file found. Using default values.")
         config_object["kuksa_val"] = {
-            "host": args.host,
+            "ip": args.ip,
             "port": args.port,
             "protocol": args.protocol,
             "insecure": args.insecure,
-            "certificate": args.certificate,
             "cacertificate": args.cacertificate,
+            "tls_server_name": args.tls_server_name,
             "token_or_tokenfile": args.token,
             "file": args.file,
         }

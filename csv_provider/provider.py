@@ -20,6 +20,7 @@ import csv
 import argparse
 import logging
 import os
+from pathlib import Path
 
 from kuksa_client.grpc import Datapoint
 from kuksa_client.grpc import DataEntry
@@ -54,6 +55,12 @@ def init_argparse() -> argparse.ArgumentParser:
     parser.add_argument("-l", "--log", default=environment.get("PROVIDER_LOG_LEVEL", "INFO"),
                         help="This sets the logging level. The default value is WARNING.",
                         choices={"INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"})
+    parser.add_argument("--cacertificate",
+                        help="Specify the path to your CA.pem. If used provider will connect using TLS",
+                        nargs='?', default=None)
+    parser.add_argument("--tls-server-name",
+                        help="TLS server name, may be needed if addressing a server by IP-name",
+                        nargs='?', default=None)
     return parser
 
 
@@ -62,10 +69,15 @@ async def main():
     parser = init_argparse()
     args = parser.parse_args()
     numeric_value = getattr(logging, args.log.upper(), None)
+    if args.cacertificate:
+        root_path = Path(args.cacertificate)
+    else:
+        root_path = None
     if isinstance(numeric_value, int):
         logging.basicConfig(encoding='utf-8', level=numeric_value)
     try:
-        async with VSSClient(args.address, args.port) as client:
+        async with VSSClient(args.address, args.port, root_certificates=root_path,
+                             tls_server_name=args.tls_server_name) as client:
             csvfile = open(args.file, newline='', encoding="utf-8")
             signal_reader = csv.DictReader(csvfile,
                                            delimiter=',',

@@ -16,6 +16,7 @@
 import contextlib
 import logging
 import time
+from typing import Optional
 
 # pylint: disable=unused-import
 import sensor_msgs  # # noqa: F401
@@ -23,6 +24,8 @@ import sensor_msgs  # # noqa: F401
 # F401 std_msgs module is used  to access the data classes
 # pylint: disable=unused-import
 import std_msgs  # # noqa: F401
+
+from pathlib import Path
 
 # F401 Vehicle module is used inside the eval block to access the data classes
 # pylint: disable=unused-import
@@ -96,7 +99,7 @@ class Ddsprovider:
     """class to work with DDS feeder."""
 
     # pylint: disable=too-many-instance-attributes
-    def __init__(self):
+    def __init__(self, root_ca_path: Optional[str] = None, tls_server_name: Optional[str] = None):
         self._shutdown = False
         self._provider = None
         self._registered = False
@@ -105,6 +108,8 @@ class Ddsprovider:
         self._reader = []
         self._listener = None
         self._mapper = None
+        self._root_ca_path = root_ca_path
+        self._tls_server_name = tls_server_name
         self._exit_stack = contextlib.ExitStack()
 
     async def start(self, databroker_address, grpc_metadata, mappingfile, token):
@@ -118,9 +123,16 @@ class Ddsprovider:
         self._mapper = vss2ddsmapper.Vss2DdsMapper(mappingfile)
         host, port = databroker_address.split(":")
 
+        # If there is a path VSSClient will request a secure connection
+        if self._root_ca_path:
+            root_path = Path(self._root_ca_path)
+        else:
+            root_path = None
+
         try:
             vss_client = self._exit_stack.enter_context(
-                VSSClient(host=host, port=port, token=token)
+                VSSClient(host=host, port=port, token=token,
+                          root_certificates=root_path, tls_server_name=self._tls_server_name)
             )
         except VSSClientError as kuksa_error:
             log.error(kuksa_error)
