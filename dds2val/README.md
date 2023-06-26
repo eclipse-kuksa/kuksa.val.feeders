@@ -38,14 +38,14 @@ Configuration for the DDS provider is solved through setting environment variabl
 
 | Environment variable          | default value | description                                                                                                                                      |
 | ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| VDB_ADDRESS                   | 127.0.0.1     | Address where to look for (vehicle) databroker                                                                                                   |
+| VDB_ADDRESS                   | 127.0.0.1     | Address where to look for KUKSA.val Databroker                                                                                                   |
+| VDB_PORT                      | 55555         | On which port the KUKSA.val Databroker is expected.                                                                                              |
+| MAPPING_FILE                  | mapping/latest/mapping.yml   | Place of mapping file from DDS to VSS                                                                                             |
+| TOKEN                         | None          | JWT token which will get used to authorize to databroker; You can set on linux through `export TOKEN=$(< PATH_TO_kuksa.val/jwt/provide-all.token)` or `export TOKEN=<content of a file>`|
+| VDB_ROOT_CA_PATH              | None          | Path to root CA. If defined the client will attempt to use a secure connection and identify the server using this certificate. |
+| VDB_TLS_SERVER_NAME           | None          | TLS server name, may be needed if addressing a server by IP-name |
 | VEHICLEDATABROKER_DAPR_APP_ID | None          | DAPR ID for Vehicle App to look for. For more information to Vehicle Apps visit [Velocitas](https://eclipse-velocitas.github.io/velocitas-docs/) |
-| DAPR_GRPC_PORT                | None          | If [DAPR](https://dapr.io/) gets used port of DAPR Sidecar. Overwrites VDB_PORT variable                                                         |
-| MAPPING_FILE                  | mapping/latest/mapping.yml   | Place of mapping file from DDS to VSS                                                                                                            |
-| VDB_PORT                      | 55555         | On which port the (vehicle) databroker is expected. If you want to use DAPR use DAPR_GRPC_PORT.                                                  |
-| TOKEN                         | None          | JWT token which will get used to authorize to databroker; You can set on linux through `export TOKEN=$(< PATH_TO_kuksa.val/jwt/provide-all.token)` or `export TOKEN=<content of a file>`|                                                                                         |
-| VDB_ROOT_CA_PATH              | None         | Path to root CA. If defined the client will attempt to use a secure connection and identify the server using this certificate. |
-| VDB_TLS_SERVER_NAME           | None         | TLS server name, may be needed if addressing a server by IP-name |
+| DAPR_GRPC_PORT                | None          | If [DAPR](https://dapr.io/) gets used port of DAPR Sidecar. Overwrites VDB_PORT variable. Deprecated - please use  VDB_PORT instead              |
 
 ## Overall sequence
 
