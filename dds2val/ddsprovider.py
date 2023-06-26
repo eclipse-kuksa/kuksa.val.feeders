@@ -48,6 +48,7 @@ async def main():
         )
 
     if os.environ.get("DAPR_GRPC_PORT"):
+        log.warning("DAPR_GRPC_PORT is deprecated, please use VDB_PORT instead.")
         port = os.environ.get("DAPR_GRPC_PORT")
     else:
         port = os.environ.get("VDB_PORT", "55555")
