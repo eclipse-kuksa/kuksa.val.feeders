@@ -124,3 +124,10 @@ jobs:
         pylint --exit-zero dbcfeeder.py dbcfeederlib test
         # Fail on errors and above
         pylint -E dbcfeeder.py dbcfeederlib test
+
+    - name: Run mypy, fail on errors.
+      run: |
+          # Also install some dependencies for analysis
+          pip3 install mypy grpc-stubs
+          cd dbc2val
+          python -m mypy *.py dbcfeederlib test
