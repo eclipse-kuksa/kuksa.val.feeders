@@ -13,29 +13,32 @@ If you do not have a gps device, you can use your cellphone to forward gps data 
 gpsd -N udp://0.0.0.0:29998
 ```
 ## Install dependencies and execution
-usage: gpsd_feeder.py [-h] [--host [HOST]] [--port [PORT]] [--protocol [PROTOCOL]] [--insecure [INSECURE]] [--certificate [CERTIFICATE]] [--cacertificate [CACERTIFICATE]] [--token [TOKEN]]
+
+```
+usage: gpsd_feeder.py [-h] [--ip [IP]] [--port [PORT]] [--protocol [PROTOCOL]] [--insecure [INSECURE]] [--cacertificate [CACERTIFICATE]] [--tls-server-name [TLS_SERVER_NAME]] [--token [TOKEN]]
                       [--file [FILE]] [--gpsd_host [GPSD_HOST]] [--gpsd_port [GPSD_PORT]] [--interval [INTERVAL]]
 
 options:
->-h, --help            show this help message and exit
->--host [HOST]         Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1
->--port [PORT]         Specify the port where too look for KUKSA.val server/databroker; default: 8090
->--protocol [PROTOCOL]
-                      If you want to connect to KUKSA.val server specify ws. If you want to connect to KUKSA.val databroker specify grpc; default: ws
->--insecure [INSECURE]
-                      For KUKSA.val server specify False, for KUKSA.val databroker there is currently no security so specify True; default: False
->--certificate [CERTIFICATE]
-                      Specify the path to your Client.pem file; default: Client.pem
->--cacertificate [CACERTIFICATE]
-                      Specify the path to your CA.pem; default: CA.pem
->--token [TOKEN]       Specify the JWT token or the path to your JWT token; default: token information not specified
->--file [FILE]         Specify the path to your config file; default: not specifed
->--gpsd_host [GPSD_HOST]
-                      Specify the host for gpsd to start on; default: 127.0.0.1
->--gpsd_port [GPSD_PORT]
-                      Specify the port for gpsd to start on; default: 2948
->--interval [INTERVAL]
-                      Specify the interval time for feeding gps data; default: 1
+  -h, --help            show this help message and exit
+  --ip [IP]             Specify the host where too look for KUKSA.val server/databroker; default: 127.0.0.1
+  --port [PORT]         Specify the port where too look for KUKSA.val server/databroker; default: 8090
+  --protocol [PROTOCOL]
+                        If you want to connect to KUKSA.val server specify ws. If you want to connect to KUKSA.val databroker specify grpc; default: ws
+  --insecure [INSECURE]
+                        Specify if you want an insecure connection (i.e. without TLS)default: False
+  --cacertificate [CACERTIFICATE]
+                        Specify the path to your CA.pem; default: CA.pem. Needed when not using insecure mode
+  --tls-server-name [TLS_SERVER_NAME]
+                        TLS server name, may be needed if addressing a server by IP-name
+  --token [TOKEN]       Specify the JWT token string or the path to your JWT token; default: authentication information not specified
+  --file [FILE]         Specify the path to your config file; by default not defined
+  --gpsd_host [GPSD_HOST]
+                        Specify the host for gpsd to start on; default: 127.0.0.1
+  --gpsd_port [GPSD_PORT]
+                        Specify the port for gpsd to start on; default: 2948
+  --interval [INTERVAL]
+                        Specify the interval time for feeding gps data; default: 1
+```
 
 A template config file that can be used together with the `--file` option
 exists in [config/gpsd_feeder.ini](config/gpsd_feeder.ini). Note that if `--file` is specified all other options
@@ -52,8 +55,22 @@ gpsd_feeder will try to authenticate itself towards the KUKSA.val Server/Databro
 Note that the KUKSA.val Databroker by default does not require authentication.
 
 An example for authorizing against KUKSA.val Databroker using an example token is shown below.
+
 ```
 python gpsd_feeder.py --protocol grpc --port 55555 --insecure true --token /home/user/kuksa.val/jwt/provide-all.token
+```
+
+## TLS
+
+The KUKSA.val GPS Feeder supports using TLS connections. A TLS connection will be used unless `--insecure=True`
+is specified. When using a TLS connection a path to the root certificate used by the Server/Databroker must be given.
+The client validates the name of the server against the certificate provided by the Server/Databroker.
+If addressing with a numeric IP-address and using grpc as protocol the "real" server name must be given using
+`--tls-server-name`. For the [KUKSA.val example certificates](https://github.com/eclipse/kuksa.val/tree/master/kuksa_certificates)
+the names `localhost`and `Server`can be used.
+
+```
+python gpsd_feeder.py --port 55555 --protocol grpc --ip 127.0.0.1 --cacertificate ~/kuksa.val/kuksa_certificates/CA.pem --tls-server-name Server
 ```
 
 ### Using docker
