@@ -16,25 +16,24 @@
 # SPDX-License-Identifier: Apache-2.0
 ########################################################################
 
-import sys, os
-import time, datetime
+import sys
+import os
+import time
+import datetime
 import traceback
 import configparser
 import csv
-import string
+from kuksa_client import KuksaClientThread
 
-scriptDir= os.path.dirname(os.path.realpath(__file__))
+scriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(scriptDir, "..", ".."))
 
-from kuksa_viss_client import *
-
-def workaround_dict(a,b):
-    pass
-
+# Expected columns in log file from KUKSA.val Server
 rowIDs = [
     "timestamp",
     "ID",
     "action",
+    "attribute",
     "path",
     "value"
 ]
@@ -42,39 +41,35 @@ rowIDs = [
 try:
     config = configparser.ConfigParser()
     config.read('config.ini')
-except:
+except Exception:
     print("Unable to read config file")
     os._exit(0)
 
-args=config['replay']               #get replay data
-vsscfg = config['vss']              #get Client data from config file
+args = config['replay']               # get replay data
+vsscfg = config['vss']              # get Client data from config file
 csv_path = args.get('path')
 
 try:
-    commThread = KuksaClientThread(vsscfg)       #make new thread
+    commThread = KuksaClientThread(vsscfg)       # make new thread
     commThread.start()
-    commThread.authorize(token=commThread.tokenfile)
+    commThread.authorize()
+    connected = commThread.checkConnection()
+    if not connected:
+        print("Could not connect successfully")
+        sys.exit(-1)
     print("Connected successfully")
-except:
-    print("Could not connect successfully")
+except Exception:
+    print("Exception when trying to connect")
     sys.exit(-1)
 
 try:
 
-    actionFunctions = {
-        "get": commThread.getValue,
-        "set": commThread.setValue
-        }
-
-    if args.get('mode') == 'Set':
-        actionFunctions["get"] = workaround_dict   #don't call get functions when getValue is not specified
-    elif args.get('mode') == 'SetGet':
-            pass
-    else:
+    if not args.get('mode') in ['Set', 'SetGet']:
         raise AttributeError
 
-    with open(csv_path,"r") as recordFile:
-        fileData = csv.DictReader(recordFile,rowIDs,delimiter=';')
+    with open(csv_path, "r") as recordFile:
+        print("Replaying data from " + csv_path)
+        fileData = csv.DictReader(recordFile, rowIDs, delimiter=';')
 
         timestamp_pre = 0
         for row in fileData:
@@ -83,21 +78,24 @@ try:
             if timestamp_pre != 0:
                 curr = datetime.datetime.strptime(timestamp_curr, '%Y-%b-%d %H:%M:%S.%f')
                 pre = datetime.datetime.strptime(timestamp_pre, '%Y-%b-%d %H:%M:%S.%f')
-                delta = (curr-pre).total_seconds()          #get time delta between the timestamps
+                delta = (curr-pre).total_seconds()          # get time delta between the timestamps
             else:
-                delta=0
-            
+                delta = 0
+
             timestamp_pre = timestamp_curr
 
             time.sleep(delta)
-            actionFunctions.get(row['action'])(row['path'],row['value'])
+            if row['action'] == 'set':
+                commThread.setValue(row['path'], row['value'])
+            elif args.get('mode') == 'SetGet':
+                commThread.getValue(row['path'])
 
         print("Replay successful")
 
 except AttributeError:
     print("Wrong attributes used. Please check config.ini")
 
-except:
+except Exception:
     traceback.print_exc()
 
 os._exit(1)

@@ -1,0 +1,7 @@
+2023-Jul-03 14:21:04.902324;0;set;value;Vehicle.Speed;"54"
+2023-Jul-03 14:21:07.366425;1;set;value;Vehicle.Speed;"5"
+2023-Jul-03 14:21:09.342065;2;set;value;Vehicle.Speed;"12"
+2023-Jul-03 14:21:11.564240;3;set;value;Vehicle.Speed;"54"
+2023-Jul-03 14:21:12.606443;4;get;value;Vehicle.Speed
+2023-Jul-03 14:21:13.606443;5;get;value;Vehicle.Speed
+2023-Jul-03 14:21:14.342065;6;set;value;Vehicle.Speed;"12"
