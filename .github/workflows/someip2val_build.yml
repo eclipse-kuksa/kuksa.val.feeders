@@ -114,10 +114,8 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}/someip-feeder
           tags: |
-            type=sha
-            type=ref,event=tag
-            type=edge
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
@@ -136,6 +134,9 @@ jobs:
             ${{ steps.meta.outputs.tags }}
             ttl.sh/kuksa.val.feeders/someip-feeder-${{github.sha}}
           labels: ${{ steps.meta.outputs.labels }}
+          # Provenance to solve that an unknown/unkown image is shown on ghcr.io
+          # Same problem as described in https://github.com/orgs/community/discussions/45969
+          provenance: false
 
       - name: "Build someip2val container and push to ttl.sh"
         if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
@@ -150,3 +151,6 @@ jobs:
           tags: |
             ttl.sh/kuksa.val.feeders/someip-feeder-${{github.sha}}
           labels: ${{ steps.meta.outputs.labels }}
+          # Provenance to solve that an unknown/unkown image is shown on ghcr.io
+          # Same problem as described in https://github.com/orgs/community/discussions/45969
+          provenance: false
