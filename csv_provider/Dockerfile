@@ -29,7 +29,7 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN /opt/venv/bin/python3 -m pip install --upgrade pip \
-    && pip3 install --no-cache-dir -r requirements.txt
+    && pip3 install --no-cache-dir --pre -r requirements.txt
 
 
 RUN pip3 install wheel scons && pip3 install pyinstaller

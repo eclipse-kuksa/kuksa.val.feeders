@@ -1,6 +1,7 @@
+# If pre-releases (e.g. X.YaN) are specified you must use --pre when installing
 pytest
 pytest-html
 pytest-cov
 pytest-asyncio
 py
-kuksa-client > 0.3
+kuksa-client >= 0.4a4
