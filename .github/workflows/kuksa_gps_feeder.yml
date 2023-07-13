@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 env:
-  EPHEMERAL_IMAGE: "ttl.sh/kuksa.val.feeders/gps-${{ github.sha }}:1h"
+  EPHEMERAL_IMAGE: "ttl.sh/kuksa.val.feeders/gps-${{ github.sha }}"
 
 jobs:
 
