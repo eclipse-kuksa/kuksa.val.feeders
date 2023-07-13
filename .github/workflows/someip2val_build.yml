@@ -134,7 +134,7 @@ jobs:
           platforms: linux/amd64, linux/arm64
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ttl.sh/kuksa.val.feeders/someip-feeder-${{github.sha}}:8h
+            ttl.sh/kuksa.val.feeders/someip-feeder-${{github.sha}}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: "Build someip2val container and push to ttl.sh"
@@ -148,5 +148,5 @@ jobs:
           context: "./someip2val"
           platforms: linux/amd64, linux/arm64
           tags: |
-            ttl.sh/kuksa.val.feeders/someip-feeder-${{github.sha}}:8h
+            ttl.sh/kuksa.val.feeders/someip-feeder-${{github.sha}}
           labels: ${{ steps.meta.outputs.labels }}
