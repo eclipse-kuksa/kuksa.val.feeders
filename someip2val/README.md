@@ -24,7 +24,7 @@ Running default vsomeip examples in containers is described in details [here](do
 
 ## Overview
 
-[SOME/IP](https://www.autosar.org/fileadmin/standards/foundation/1-4/AUTOSAR_PRS_SOMEIPProtocol.pdf) is an automotive communication protocol which supports remote procedure calls, event notifications, service discovery. SOME/IP messages are sent as TCP/UDP unicast/multicast packets, but it is also possible to use local (Unix) endpoints.
+[SOME/IP](https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPProtocol.pdf) is an automotive communication protocol which supports remote procedure calls, event notifications, service discovery. SOME/IP messages are sent as TCP/UDP unicast/multicast packets, but it is also possible to use local (Unix) endpoints.
 
 SOME/IP feeder is [COVESA / vsomeip](https://github.com/COVESA/vsomeip/) application, that subscribes for specific "Wiper" SOME/IP Events, parses the payload and feeds values to KUKSA.VAL Databroker. It also provides an example "Wiper" SOME/IP request handling for setting wiper parameters.
 
@@ -34,9 +34,9 @@ SOME/IP feeder is [COVESA / vsomeip](https://github.com/COVESA/vsomeip/) applica
 - [src/lib/someip_client/](./src/lib/someip_client/) is provinding generic SOME/IP Client implementation (generic implementation, does not depend on wiper).
 - [src/lib/wiper_poc/](./src/lib/wiper_poc/) is provinding wiper specific implementation (someip config, serialization, deserialization of events and data structures).\
 **NOTE**: Check [wiper_poc.h](src/lib/wiper_poc/wiper_poc.h) for SOME/IP Event definitions (`struct t_Event`), and SOME/IP Request (`struct t_WiperRequest`)
-- [examples/wiper_service/wiper_server.cc](./examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Service for sending some serialized example Wiper events.
-- [examples/wiper_service/wiper_client.cc](./examples/wiper_service/wiper_client.cc): an example SOME/IP Wiper Client for subscribing and parsing Wiper event payload and example Request/Response client for Wiper VSS service.
-- [examples/wiper_service/wiper_sim.cc](./examples/wiper_service/wiper_sim.cc): an example simulation of a Wiper service.
+- [src/examples/wiper_service/wiper_server.cc](./src/examples/wiper_service/wiper_server.cc): an example SOME/IP Wiper Service for sending some serialized example Wiper events.
+- [src/examples/wiper_service/wiper_client.cc](./src/examples/wiper_service/wiper_client.cc): an example SOME/IP Wiper Client for subscribing and parsing Wiper event payload and example Request/Response client for Wiper VSS service.
+- [src/examples/wiper_service/wiper_sim.cc](./src/examples/wiper_service/wiper_sim.cc): an example simulation of a Wiper service.
 - [patches/](./patches/): Contains vsomeip patches (master branch), that have not been pushed to upstream yet.
 
 ## Setup Development environment

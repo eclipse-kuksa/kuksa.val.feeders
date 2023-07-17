@@ -2,7 +2,7 @@
 
 ![kuksa.val Logo](../doc/img/logo.png)
 
-Once you recorded your server in- and outputs to your record file using the [record feature](../../src/VssDatabase_Record.cpp) the replay script can replay the same data with exact timing into the `kuksa.val` server.
+Once you recorded your server in- and outputs to your record file using the [record feature](https://github.com/eclipse/kuksa.val/blob/master/kuksa-val-server/src/VssDatabase_Record.cpp) the replay script can replay the same data with exact timing into the `kuksa.val` server.
 An example log can be found in [testlog.csv](testlog.csv)
 
 ## Usage
