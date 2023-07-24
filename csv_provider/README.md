@@ -58,3 +58,7 @@ so one of those names needs to be specified if connecting to `127.0.0.1`. An exa
 ```
 python provider.py --cacertificate /home/user/kuksa.val/kuksa_certificates/CA.pem --tls-server-name Server
 ```
+
+## Limitations
+
+* CSV Provider does not support authentication, i.e. it is impossible to communicate with a Databroker that require authentication!
