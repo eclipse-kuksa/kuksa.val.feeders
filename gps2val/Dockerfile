@@ -19,7 +19,8 @@ ADD . /kuksa_gps_feeder
 WORKDIR /kuksa_gps_feeder
 RUN pip install --upgrade pip
 # Note - Installing grpcio (inherited from kuksa-viss-client) takes very long time (40-60 minutes) on Alpine
-RUN pip install --pre --target /kuksa_gps_feeder --no-cache-dir -r requirements.txt
+# Note - if relying on kuksa-client pre-releases you must add --pre to the line below
+RUN pip install --target /kuksa_gps_feeder --no-cache-dir -r requirements.txt
 
 
 FROM python:3.10-alpine
