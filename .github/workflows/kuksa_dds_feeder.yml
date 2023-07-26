@@ -104,6 +104,7 @@ jobs:
     - name: Run dds tests
       run: |
         cd dds2val
-        pip3 install --no-cache-dir --pre -r requirements/requirements.txt -r requirements/requirements-kml.txt -r requirements/requirements-test.txt
+        # Note - if relying on kuksa-client pre-releases you must use --pre on the line below
+        pip3 install --no-cache-dir -r requirements/requirements.txt -r requirements/requirements-kml.txt -r requirements/requirements-test.txt
         ./ddsproviderlib/idls/generate_py_dataclass.sh
         python -m pytest tests/*

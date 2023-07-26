@@ -74,8 +74,8 @@ cd $(git rev-parse --show-toplevel)/someip2val/target/x86_64/release/install/bin
 - Test actuator subscriber with kuksa-client:
 
 ```bash
-# make sure pre-release client is installed
-pip3 install -U --pre kuksa-client
+# Use --pre if you rely on kuksa-client pre-releases
+pip3 install -U kuksa-client
 
 GRPC_ENABLE_FORK_SUPPORT=true kuksa-client --ip 127.0.0.1 --port 55555 --protocol grpc --insecure --token_or_tokenfile $(git rev-parse --show-toplevel)/someip2val/cert/someip2val.token
 ```
