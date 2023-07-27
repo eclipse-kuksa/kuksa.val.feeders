@@ -19,6 +19,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/someip2val_build.yml"
+      - ".github/workflows/check_push_rights.yml"
       - "someip2val/**"
   workflow_dispatch:
     inputs:

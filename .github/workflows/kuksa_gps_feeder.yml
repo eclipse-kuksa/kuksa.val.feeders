@@ -3,14 +3,11 @@ name: kuksa_gps_feeder
 on:
   push:
     branches: [ main ]
-    tags:
-      - "v*.*.*"
   pull_request:
-    branches: [ main ]
     paths:
-     - ".github/actions/post-container-location/action.yml"
-     - ".github/workflows/check_push_rights.yml"
      - ".github/workflows/kuksa_gps_feeder.yml"
+     - ".github/workflows/check_push_rights.yml"
+     - ".github/actions/post-container-location/action.yml"
      - "gps2val/**"
   workflow_dispatch:
 
