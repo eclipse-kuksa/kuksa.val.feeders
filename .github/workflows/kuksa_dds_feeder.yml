@@ -14,11 +14,12 @@
 name: kuksa_dds_feeder
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     paths:
       - ".github/workflows/kuksa_dds_feeder.yml"
       - "dds2val/**"
-  workflow_call:
   workflow_dispatch:
 
 jobs:
