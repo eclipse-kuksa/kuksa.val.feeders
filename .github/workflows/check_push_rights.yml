@@ -39,10 +39,12 @@ jobs:
     - name: Check GITHUB_TOKEN allows GHCR push access
       id: check-secrets
       run: |
-
           echo "# Checking [${{ github.event_name }}] event, running in [${{ github.repository }}] repository"
 
           if [[ "${{ github.repository_owner }}" == "eclipse" ]]; then
+            # The checks here should be equal to
+            # https://github.com/eclipse/kuksa.val/blob/master/.github/workflows/check_push_rights.yml
+            # As we check owner first we do not need to have extra conditions below
             if [[ "${{ github.event_name }}" == "push" ]]; then
               echo "We are pushing to kuksa.val.feeders upstream, so we should have rights"
               echo "have_secrets=true" >> $GITHUB_OUTPUT
@@ -50,8 +52,13 @@ jobs:
               # if it is a pull_request and my_repo is kuksa.val.feeders I can push to GHCR,
               # (note that some/all workflows in this repo might still opt to no push PR builds to GHCR)
             fi
-            if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == eclipse/* ]]; then
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
                 echo "We are an internal pull request, so we should have rights"
+                echo "have_secrets=true" >> $GITHUB_OUTPUT
+                exit 0
+            fi
+            if [[ "${{ github.ref_type }}" == "tag"  ]]; then
+                echo "We are an upstream release build , so we should have rights"
                 echo "have_secrets=true" >> $GITHUB_OUTPUT
                 exit 0
             fi
