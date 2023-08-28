@@ -81,14 +81,15 @@ class VSSMapping:
         Value (on_change) condition not evaluated
         """
         fulfilled = True
-        log.debug(f"Checking interval for {self.vss_name}. "
-                  f"Time is {time}, last sent {self.last_time}")
+        log.debug(
+            "Checking interval for %s. Time is %#.3f, last sent %#.3f",
+            self.vss_name, time, self.last_time)
 
         # First shall always evaluate to true
         if (self.interval_ms > 0) and (self.last_time != 0.0):
             diff_ms = (time - self.last_time) * 1000.0
             if diff_ms < self.interval_ms:
-                log.debug(f"Interval not exceeded for {self.vss_name}. Time is {time}")
+                log.debug("Interval not exceeded for %s. Time is %#.3f", self.vss_name, time)
                 fulfilled = False
 
         # We must set time already now even if a value check is performed later
@@ -105,8 +106,9 @@ class VSSMapping:
         if time condition is fulfilled.
         """
         fulfilled = False
-        log.debug(f"Checking change condition for {self.vss_name}. "
-                  f"New value {vss_value}, old value {self.last_vss_value}")
+        log.debug(
+            "Checking change condition for %s. New value %s, old value %s",
+            self.vss_name, vss_value, self.last_vss_value)
 
         if vss_value is not None:
             if self.last_vss_value is None:
@@ -128,7 +130,7 @@ class VSSMapping:
         """
         vss_value = None
         if self.transform is None:
-            log.debug(f"No mapping to VSS {self.vss_name}, using raw value {value}")
+            log.debug("No mapping to VSS %s, using raw value %s", self.vss_name, value)
             vss_value = value
         else:
             if "mapping" in self.transform:
@@ -148,25 +150,30 @@ class VSSMapping:
                     # It is assumed that you may consider it ok that transformation fails sometimes,
                     # so giving warning instead of error
                     # This could be e.g. trying to treat a string as int
-                    log.warning(f"Transformation failed for value {value} "
-                                f"for VSS signal {self.vss_name}, signal ignored!", exc_info=True)
+                    log.warning(
+                        "Transformation failed for value %s for VSS signal %s, signal ignored!",
+                        value, self.vss_name,
+                        exc_info=True)
             else:
                 # It is supposed that "extract_verify_transform" already have checked that
                 # we have a valid transform, so we shall never end up here
                 log.error("Unsupported transform")
 
         if vss_value is None:
-            log.info(f"No mapping to VSS {self.vss_name} found for raw value {value},"
-                     f"returning None to indicate that it shall be ignored!")
+            log.info(
+                """No mapping to VSS %s found for raw value %s,
+                returning None to indicate that it shall be ignored!""",
+                self.vss_name, value
+            )
         else:
-            log.debug(f"Transformed value {vss_value} for {self.vss_name}")
+            log.debug("Transformed value %s for %s", vss_value, self.vss_name)
         return vss_value
 
 
 class Mapper:
     """
     The mapper class contain all mappings between dbc and vss.
-    It also contain functionality for transforming data
+    It also contains functionality for transforming data.
     """
 
     # Where we keep mapping, key is dbc signal name
@@ -176,26 +183,32 @@ class Mapper:
     # Same, but key is CAN id mapping
     val2dbc_can_id_mapping: Dict[int, List[VSSMapping]] = {}
 
-    def __init__(self, filename, dbc_parser: dbcparser.DBCParser, dbc_default_filename=""):
-        with open(filename, "r") as file:
+    def __init__(self,
+                 filename: str,
+                 dbc_parser: dbcparser.DBCParser,
+                 dbc_default_filename: str = "",
+                 fail_on_duplicate_signal_definitions: bool = False):
+
+        with open(filename, "r", encoding="utf-8") as file:
             try:
                 jsonmapping = json.load(file)
-                log.info(f"Reading dbc configurations from {filename}")
+                log.info("Reading VSS<->DBC mapping configurations from %s", filename)
             except Exception:
-                log.error(f"Failed to read json from {filename}", exc_info=True)
+                log.error("Failed to read JSON from %s", filename, exc_info=True)
                 sys.exit(-1)
 
         self.dbc_default = {}
         if dbc_default_filename != "":
-            log.info(f"Reading default DBC values from {dbc_default_filename}")
-            with open(dbc_default_filename, "r") as file:
+            with open(dbc_default_filename, "r", encoding="utf-8") as file:
                 try:
                     self.dbc_default = json.load(file)
+                    log.info("Read default DBC signal values from %s", dbc_default_filename)
                 except Exception:
-                    log.error(f"Failed to read DBC values from {dbc_default_filename}", exc_info=True)
+                    log.error("Failed to read default DBC signal values from %s", dbc_default_filename, exc_info=True)
                     sys.exit(-1)
         self.dbc_parser = dbc_parser
-        self.traverse_vss_node("", jsonmapping)
+        self._fail_on_duplicate_signal_definitions = fail_on_duplicate_signal_definitions
+        self._traverse_vss_node("", jsonmapping)
 
     def transform_dbc_value(self, vss_observation: VSSObservation) -> Any:
         """
@@ -204,9 +217,9 @@ class Mapper:
         vss_signal = self.get_dbc2val_mapping(vss_observation.dbc_name, vss_observation.vss_name)
         if vss_signal:
             value = vss_signal.transform_value(vss_observation.raw_value)
-            log.debug(f"Transformed dbc {vss_observation.dbc_name} to VSS "
-                      f"{vss_observation.vss_name}, "
-                      f"from raw value {vss_observation.raw_value} to {value}")
+            log.debug(
+                "Transformed dbc %s to VSS %s, from raw value %s to %s",
+                vss_observation.dbc_name, vss_observation.vss_name, vss_observation.raw_value, value)
         else:
             log.error("No mapping found, that is not expected!")
             value = None
@@ -217,7 +230,7 @@ class Mapper:
         Extracts transformation and checks it seems to be correct
         """
         if "transform" not in node:
-            log.debug(f"No transformation found for {expanded_name}")
+            log.debug("No transformation found for %s", expanded_name)
             # For now assumed that None is Ok
             return None
         transform = node["transform"]
@@ -225,32 +238,32 @@ class Mapper:
         has_mapping = False
 
         if not isinstance(transform, dict):
-            log.error(f"Transform not dict for {expanded_name}")
+            log.error("Transform not dict for %s", expanded_name)
             sys.exit(-1)
         if "mapping" in transform:
             tmp = transform["mapping"]
             if not isinstance(tmp, list):
-                log.error(f"Transform mapping not list for {expanded_name}")
+                log.error("Transform mapping not list for %s", expanded_name)
                 sys.exit(-1)
             for item in tmp:
                 if not (("from" in item) and ("to" in item)):
-                    log.error(f"Mapping missing to and from in {item} for {expanded_name}")
+                    log.error("Mapping missing to and from in %s for %s", item, expanded_name)
                     sys.exit(-1)
             has_mapping = True
 
         if "math" in transform:
             if has_mapping:
-                log.error(f"Can not have both mapping and math for {expanded_name}")
+                log.error("Can not have both mapping and math for %s", expanded_name)
                 sys.exit(-1)
             if not isinstance(transform["math"], str):
-                log.error(f"Math must be str for {expanded_name}")
+                log.error("Math must be str for %s", expanded_name)
                 sys.exit(-1)
         elif not has_mapping:
-            log.error(f"Unsupported transform for {expanded_name}")
+            log.error("Unsupported transform for %s", expanded_name)
             sys.exit(-1)
         return transform
 
-    def analyze_dbc2val(self, expanded_name, node: dict, dbc2vss: dict):
+    def _analyze_dbc2val(self, expanded_name, node: dict, dbc2vss: dict):
         """
         Analyze a dbc2val entry (from CAN to KUKSA)
         """
@@ -258,7 +271,7 @@ class Mapper:
         transform = self.extract_verify_transform(expanded_name, dbc2vss)
         dbc_name = dbc2vss.get("signal", "")
         if dbc_name == "":
-            log.error(f"No dbc signal found for {expanded_name}")
+            log.error("No dbc signal found for %s", expanded_name)
             sys.exit(-1)
         on_change: bool = False
         if "on_change" in dbc2vss:
@@ -266,20 +279,19 @@ class Mapper:
             if isinstance(tmp, bool):
                 on_change = tmp
             else:
-                log.error(f"Value for on_change ({tmp}) is not bool")
+                log.error("Value for on_change (%s) is not bool", tmp)
                 sys.exit(-1)
         if "interval_ms" in dbc2vss:
             interval = dbc2vss["interval_ms"]
             if not isinstance(interval, int):
-                log.error(f"Faulty interval for {expanded_name}")
+                log.error("Faulty interval for %s", expanded_name)
                 sys.exit(-1)
         else:
             if on_change:
-                log.info(f"Using default interval 0 ms for {expanded_name} "
-                         f"as it has on_change condition")
+                log.info("Using default interval 0 ms for %s as it has on_change condition", expanded_name)
                 interval = 0
             else:
-                log.info(f"Using default interval 1000 ms for {expanded_name}")
+                log.info("Using default interval 1000 ms for %s", expanded_name)
                 interval = 1000
         mapping_entry = VSSMapping(expanded_name, dbc_name, transform, interval, on_change,
                                    node["datatype"], node["description"])
@@ -287,59 +299,84 @@ class Mapper:
             self.dbc2val_mapping[dbc_name] = []
         self.dbc2val_mapping[dbc_name].append(mapping_entry)
 
-    def analyze_val2dbc(self, expanded_name, node: dict, vss2dbc: dict):
+    def _analyze_val2dbc(self, expanded_name, node: dict, vss2dbc: dict):
         """
-        Analyze a dbc2val entry (from CAN to KUKSA)
+        Analyze a val2dbc entry (mapping a KUKSA VSS datapoint to a CAN message signal)
         """
 
-        transform = self.extract_verify_transform(expanded_name, vss2dbc)
-        dbc_name = vss2dbc.get("signal", "")
-        if dbc_name == "":
-            log.error(f"No dbc signal found for {expanded_name}")
+        dbc_signal_name = vss2dbc.get("signal", "")
+        if dbc_signal_name == "":
+            log.error("\"vss2dbc\" mapping for %s does not contain mandatory \"signal\" property", expanded_name)
             sys.exit(-1)
+
+        dbc_message_defs = self.dbc_parser.get_messages_for_signal(dbc_signal_name)
+        if len(dbc_message_defs) == 0:
+            log.error(
+                "VSS datapoint %s is mapped to CAN signal %s which is not used in any message definition",
+                expanded_name, dbc_signal_name
+            )
+            return
+
+        if len(dbc_message_defs) > 1 and log.isEnabledFor(logging.WARNING):
+            message_names = ', '.join([msg_def.name for msg_def in dbc_message_defs])
+            if self._fail_on_duplicate_signal_definitions:
+                log.error(
+                    """Mapping of VSS datapoint %s to CAN signal %s is ambiguous because signal is used by multiple
+                    CAN messages (%s)""",
+                    expanded_name, dbc_signal_name, message_names)
+                sys.exit(-1)
+            else:
+                log.warning(
+                    """Mapping of VSS datapoint %s to CAN signal %s is ambiguous because signal is used by multiple
+                    CAN messages (%s). Make sure that signal %s has the same semantics in all messages in order to
+                    prevent unexpected messages being sent on the CAN bus when the VSS datapoint's target value
+                    is being set.""",
+                    expanded_name, dbc_signal_name, message_names, dbc_signal_name)
+
+        transform = self.extract_verify_transform(expanded_name, vss2dbc)
         # For now we only support on_change, and we actually do not use the values
         on_change: bool = True
         interval = 0
         if "on_change" in vss2dbc:
-            log.warning(f"on_change attribute ignored for {expanded_name}")
+            log.warning("on_change attribute ignored for %s", expanded_name)
         if "interval_ms" in vss2dbc:
-            log.warning(f"interval_ms attribute ignored for {expanded_name}")
+            log.warning("interval_ms attribute ignored for %s", expanded_name)
 
-        mapping_entry = VSSMapping(expanded_name, dbc_name, transform, interval, on_change,
+        mapping_entry = VSSMapping(expanded_name, dbc_signal_name, transform, interval, on_change,
                                    node["datatype"], node["description"])
-        if dbc_name not in self.val2dbc_mapping:
+        if dbc_signal_name not in self.val2dbc_mapping:
             self.val2dbc_mapping[expanded_name] = []
         self.val2dbc_mapping[expanded_name].append(mapping_entry)
 
         # Also add CAN-id
-        dbc_can_id = self.dbc_parser.get_canid_for_signal(dbc_name)
-        if not dbc_can_id:
-            log.error(f"Could not find {dbc_name}")
-            return
-        if dbc_can_id not in self.val2dbc_can_id_mapping:
-            self.val2dbc_can_id_mapping[dbc_can_id] = []
-        self.val2dbc_can_id_mapping[dbc_can_id].append(mapping_entry)
+        for message_def in dbc_message_defs:
+            if message_def.frame_id not in self.val2dbc_can_id_mapping:
+                self.val2dbc_can_id_mapping[message_def.frame_id] = []
+            self.val2dbc_can_id_mapping[message_def.frame_id].append(mapping_entry)
 
-    def analyze_signal(self, expanded_name, node):
+    def _analyze_signal(self, expanded_name, node):
         """
         Analyzes a signal and add mapping entry if correct mapping found
         """
         dbc2vss_def = None
         if "dbc" in node:
-            log.debug(f"Signal {expanded_name} has dbc!")
+            log.debug("Found \"dbc\" mapping definition for VSS datapoint %s", expanded_name)
             dbc2vss_def = node["dbc"]
             if "dbc2vss" in node:
-                log.error(f"Node {expanded_name} has both dbc and dbc2vss")
+                log.error(
+                    "VSS datapoint %s may have either \"dbc\" or \"dbc2vss\" mapping defined, but not both",
+                    expanded_name
+                )
                 sys.exit(-1)
         elif "dbc2vss" in node:
-            log.debug(f"Signal {expanded_name} has dbc2vss!")
+            log.debug("Found \"dbc2vss\" mapping definition for VSS datapoint %s", expanded_name)
             dbc2vss_def = node["dbc2vss"]
         if dbc2vss_def is not None:
-            self.analyze_dbc2val(expanded_name, node, dbc2vss_def)
+            self._analyze_dbc2val(expanded_name, node, dbc2vss_def)
         if "vss2dbc" in node:
-            self.analyze_val2dbc(expanded_name, node, node["vss2dbc"])
+            self._analyze_val2dbc(expanded_name, node, node["vss2dbc"])
 
-    def traverse_vss_node(self, name, node, prefix=""):
+    def _traverse_vss_node(self, name, node, prefix=""):
         """
         Traverse a vss node/tree and order all found VSS signals to be analyzed
         so that mapping can be extracted
@@ -358,13 +395,13 @@ class Mapper:
         # Assuming it to be a dict
         if is_branch:
             for item in node["children"].items():
-                self.traverse_vss_node(item[0], item[1], prefix)
+                self._traverse_vss_node(item[0], item[1], prefix)
         elif is_signal:
             expanded_name = prefix + name
-            self.analyze_signal(expanded_name, node)
+            self._analyze_signal(expanded_name, node)
         elif isinstance(node, dict):
             for item in node.items():
-                self.traverse_vss_node(item[0], item[1], prefix)
+                self._traverse_vss_node(item[0], item[1], prefix)
 
     def get_dbc2val_mapping(self, dbc_name: str, vss_name: str) -> Optional[VSSMapping]:
         """
@@ -390,7 +427,7 @@ class Mapper:
         for entry in self.dbc2val_mapping.values():
             for vss_mapping in entry:
                 vss_names.add(vss_mapping.vss_name)
-        for key_entry in self.val2dbc_mapping.keys():
+        for key_entry in self.val2dbc_mapping:
             vss_names.add(key_entry)
         return vss_names
 
@@ -424,25 +461,25 @@ class Mapper:
     def get_default_values(self, can_id) -> Dict[str, Any]:
 
         res = {}
-        for signal in self.dbc_parser.get_signals_for_canid(can_id):
-            if signal in self.dbc_default:
-                res[signal] = self.dbc_default[signal]
+        for signal in self.dbc_parser.get_signals_by_frame_id(can_id):
+            if signal.name in self.dbc_default:
+                res[signal.name] = self.dbc_default[signal.name]
             else:
-                log.error(f"No default value for  {signal} in CAN id {can_id}")
+                log.error("No default value for signal %s of message with CAN id %#x defined", signal, can_id)
         return res
 
     def get_value_dict(self, can_id):
 
-        log.debug(f"Using stored information to create CAN-frame for {can_id}")
+        log.debug("Using stored information to create CAN-frame for %#x", can_id)
         res = self.get_default_values(can_id)
         for can_mapping in self.val2dbc_can_id_mapping[can_id]:
-            log.debug(f"Using DBC id {can_mapping.dbc_name} with value {can_mapping.last_dbc_value}")
+            log.debug("Using DBC id %s with value %s", can_mapping.dbc_name, can_mapping.last_dbc_value)
             if can_mapping.last_dbc_value is not None:
                 res[can_mapping.dbc_name] = can_mapping.last_dbc_value
         return res
 
     def __contains__(self, key):
-        return key in self.dbc2val_mapping.keys()
+        return key in self.dbc2val_mapping
 
     def __getitem__(self, item):
         return self.dbc2val_mapping[item]

@@ -23,19 +23,20 @@ Feeder parsing CAN data and sending to KUKSA.val
 """
 
 import argparse
+import asyncio
 import configparser
 import enum
 import logging
 import os
 import queue
 import sys
-import time
 import threading
-import asyncio
+import time
 
 from signal import SIGINT, SIGTERM, signal
-from typing import Any
-from typing import Dict
+from typing import Any, Dict, Set
+
+import cantools.database
 
 from dbcfeederlib import canclient
 from dbcfeederlib import canplayer
@@ -131,18 +132,18 @@ class Feeder:
     def start(
         self,
         canport,
-        dbcfile,
-        mappingfile,
-        dbc_default_file,
-        candumpfile=None,
-        use_j1939=False,
-        use_strict_parsing=False
+        dbcfile: str,
+        mappingfile: str,
+        dbc_default_file: str,
+        candumpfile: str = None,
+        use_j1939: bool = False,
+        use_strict_parsing: bool = False
     ):
 
         # Read DBC file
         self._dbc_parser = dbcparser.DBCParser(dbcfile, use_strict_parsing)
 
-        log.info("Using mapping: {}".format(mappingfile))
+        log.info("Using mapping file: %s", mappingfile)
         self._mapper = dbc2vssmapper.Mapper(mappingfile, self._dbc_parser, dbc_default_file)
 
         self._client_wrapper.start()
@@ -201,7 +202,7 @@ class Feeder:
                 log.error("Subscribing to VSS signals not supported by chosen client!")
                 self.stop()
             else:
-                log.info(f"Starting transmit thread, using {canport}")
+                log.info("Starting transmit thread, using %s", canport)
                 # For now creating another bus
                 # Maybe support different buses for downstream/upstream in the future
 
@@ -287,10 +288,12 @@ class Feeder:
                 vss_mapping = self._mapper.get_dbc2val_mapping(vss_observation.dbc_name, vss_observation.vss_name)
                 value = vss_mapping.transform_value(vss_observation.raw_value)
                 if value is None:
-                    log.warning(f"Value ignored for  dbc {vss_observation.dbc_name} to VSS {vss_observation.vss_name},"
-                                f" from raw value {value} of type {type(value)}")
+                    log.warning(
+                        "Value ignored for  dbc %s to VSS %s, from raw value %s of type %s",
+                        vss_observation.dbc_name, vss_observation.vss_name, value, type(value)
+                    )
                 elif not vss_mapping.change_condition_fulfilled(value):
-                    log.debug(f"Value condition not fulfilled for VSS {vss_observation.vss_name}, value {value}")
+                    log.debug("Value condition not fulfilled for VSS %s, value %s", vss_observation.vss_name, value)
                 else:
                     # get values out of the canreplay and map to desired signals
                     target = vss_observation.vss_name
@@ -301,8 +304,10 @@ class Feeder:
                         # Give status message after 1, 2, 4, 8, 16, 32, 64, .... messages have been sent
                         messages_sent += 1
                         if messages_sent >= (2 * last_sent_log_entry):
-                            log.info(f"Number of VSS messages sent so far: {messages_sent}, "
-                                     f"queue max size: {queue_max_size}")
+                            log.info(
+                                "Number of VSS messages sent so far: %d, queue max size: %d",
+                                messages_sent, queue_max_size
+                            )
                             last_sent_log_entry = messages_sent
             except queue.Empty:
                 pass
@@ -311,30 +316,32 @@ class Feeder:
 
     async def vss_update(self, updates):
         log.debug("vss-Update callback!")
-        dbc_ids = set()
+        dbc_signal_names: Set[str] = set()
         for update in updates:
             if update.entry.value is not None:
                 # This shall currently never happen as we do not subscribe to this
-                log.warning(f"Current value for {update.entry.path} is now: "
-                            f"{update.entry.value.value} of type {type(update.entry.value.value)}")
+                log.warning(
+                    "Current value for %s is now: %s of type %s",
+                    update.entry.path, update.entry.value.value, type(update.entry.value.value)
+                )
 
             if update.entry.actuator_target is not None:
-                log.debug(f"Target value for {update.entry.path} is now: {update.entry.actuator_target} "
-                          f"of type {type(update.entry.actuator_target.value)}")
-                new_dbc_ids = self._mapper.handle_update(update.entry.path, update.entry.actuator_target.value)
-                dbc_ids.update(new_dbc_ids)
+                log.debug(
+                    "Target value for %s is now: %s of type %s",
+                    update.entry.path, update.entry.actuator_target, type(update.entry.actuator_target.value)
+                )
+                affected_signals = self._mapper.handle_update(update.entry.path, update.entry.actuator_target.value)
+                dbc_signal_names.update(affected_signals)
 
-        can_ids = set()
-        for dbc_id in dbc_ids:
-            can_id = self._dbc_parser.get_canid_for_signal(dbc_id)
-            can_ids.add(can_id)
+        messages_to_send: Set[cantools.database.Message] = set()
+        for signal_name in dbc_signal_names:
+            messages_to_send.update(self._dbc_parser.get_messages_for_signal(signal_name))
 
-        for can_id in can_ids:
-            log.debug(f"CAN id to be sent, this is {can_id}")
-            sig_dict = self._mapper.get_value_dict(can_id)
-            message_data = self._dbc_parser.db.get_message_by_frame_id(can_id)
-            data = message_data.encode(sig_dict)
-            self._canclient.send(arbitration_id=message_data.frame_id, data=data)
+        for message_definition in messages_to_send:
+            log.debug("sending CAN message %s with frame ID %#x", message_definition.name, message_definition.frame_id)
+            sig_dict = self._mapper.get_value_dict(message_definition.frame_id)
+            data = message_definition.encode(sig_dict)
+            self._canclient.send(arbitration_id=message_definition.frame_id, data=data)
 
     async def _run_subscribe(self):
         """
@@ -358,8 +365,8 @@ def parse_config(filename):
 
     if filename:
         if not os.path.exists(filename):
-            log.warning("Couldn't find config file {}".format(filename))
-            raise Exception("Couldn't find config file {}".format(filename))
+            log.warning("Couldn't find config file %s", filename)
+            raise FileNotFoundError(filename=filename)
         configfile = filename
     else:
         config_candidates = [
@@ -372,19 +379,14 @@ def parse_config(filename):
                 configfile = candidate
                 break
 
-    log.info("Using config: {}".format(configfile))
+    log.info("Using config: %s", configfile)
     if configfile is None:
         return {}
 
     config = configparser.ConfigParser()
     readed = config.read(configfile)
-    if log.level >= logging.DEBUG:
-        log.debug(
-            "# config.read({}):\n{}".format(
-                readed,
-                {section: dict(config[section]) for section in config.sections()},
-            )
-        )
+    if log.isEnabledFor(logging.DEBUG):
+        log.debug("# config.read(%s):\n%s", readed, {section: dict(config[section]) for section in config.sections()})
 
     return config
 
@@ -447,7 +449,7 @@ def main(argv):
     parser.add_argument('--no-val2dbc', action='store_true',
                         help="Do not monitor mapped signals in KUKSA.val")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     config = parse_config(args.config)
 
@@ -485,7 +487,7 @@ def main(argv):
 
     if "root_ca_path" in config["general"]:
         path = config['general']['root_ca_path']
-        log.info(f"Given root CA path: {path}")
+        log.info("Given root CA path: %s", path)
         client_wrapper.set_root_ca_path(path)
     elif client_wrapper.get_tls():
         # We do not want to rely on kuksa-client default
@@ -493,11 +495,11 @@ def main(argv):
 
     if "tls_server_name" in config["general"]:
         name = config['general']['tls_server_name']
-        log.info(f"Given TLS server name: {name}")
+        log.info("Given TLS server name: %s", name)
         client_wrapper.set_tls_server_name(name)
 
     if "token" in config["general"]:
-        log.info(f"Given token information: {config['general']['token']}")
+        log.info("Given token information: %s", config['general']['token'])
         client_wrapper.set_token_path(config["general"]["token"])
     else:
         log.info("Token information not given")
@@ -593,7 +595,7 @@ def main(argv):
         # By default enabled
         log.info("Alt5")
         use_dbc2val = True
-    log.info(f"DBC2VAL mode is: {use_dbc2val}")
+    log.info("DBC2VAL mode is: %s", use_dbc2val)
 
     if args.val2dbc:
         use_val2dbc = True
@@ -608,12 +610,12 @@ def main(argv):
     else:
         # By default disabled
         use_val2dbc = False
-    log.info(f"VAL2DBC mode is: {use_val2dbc}")
+    log.info("VAL2DBC mode is: %s", use_val2dbc)
 
     feeder = Feeder(client_wrapper, elmcan_config, dbc2val=use_dbc2val, val2dbc=use_val2dbc)
 
     def signal_handler(signal_received, *_):
-        log.info(f"Received signal {signal_received}, stopping...")
+        log.info("Received signal %s, stopping...", signal_received)
 
         # If we get told to shutdown a second time. Just do it.
         if feeder.is_stopping():
@@ -651,7 +653,7 @@ def parse_env_log(env_log, default=logging.INFO):
                 "critical",
             ]:
                 return specified_level.upper()
-            raise Exception(f"could not parse '{specified_level}' as a log level")
+            raise ValueError(f"could not parse '{specified_level}' as a log level")
         return default
 
     parsed_loglevels = {}
@@ -663,7 +665,7 @@ def parse_env_log(env_log, default=logging.INFO):
             if len(spec_parts) == 1:
                 # This is a root level spec
                 if "root" in parsed_loglevels:
-                    raise Exception("multiple root loglevels specified")
+                    raise ValueError("multiple root loglevels specified")
                 parsed_loglevels["root"] = parse_level(spec_parts[0])
             if len(spec_parts) == 2:
                 logger_name = spec_parts[0]
