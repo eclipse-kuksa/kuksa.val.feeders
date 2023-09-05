@@ -58,8 +58,6 @@ async def main():
         "MAPPING_FILE", str(Path(__file__).parent / "mapping/latest/mapping.yml")
     )
 
-    # Collect data for TLS connection, for now default is no TLS
-    # To keep backward compatibility not using TLS is default
     if os.environ.get("VDB_ROOT_CA_PATH"):
         root_ca_path = os.environ.get("VDB_ROOT_CA_PATH")
     else:

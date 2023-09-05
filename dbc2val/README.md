@@ -248,7 +248,7 @@ A smaller excerpt from the above sample, with fewer signals.
 | *--server-type*       | *SERVER_TYPE*                   | *[general].server_type* | `kuksa_databroker`               | Which type of server the feeder should connect to (`kuksa_val_server` or `kuksa_databroker`) |
 | -                     | *KUKSA_ADDRESS*                 | *[general].ip*          | `127.0.0.1`                      | IP address for Server/Databroker |
 | -                     | *KUKSA_PORT*                    | *[general].port*        | `55555`                          | Port for Server/Databroker |
-| -                     | -                               | *[general].tls*         | `False`                          | Shall tls be used for Server/Databroker connection? |
+| -                     | -                               | *[general].tls*         | `True`                          | Shall tls be used for Server/Databroker connection? |
 | -                     | -                               | *[general].root_ca_path* | *Undefined*                      | Path to root CA: Only needed if using TLS |
 | -                     | -                               | *[general].tls_server_name* | *Undefined*                   | TLS server name, may be needed if addressing a server by IP-name |
 | -                     | -                               | *[general].token*       | *Undefined*                      | Token path. Only needed if Databroker/Server requires authentication |
@@ -303,10 +303,11 @@ must be set. The default config file include (commented) values to use if using 
 
 ### Using kuksa-client with a server requiring TLS
 
-The [default configuration file](config/dbc_feeder.ini) does not specify that TLS shall be used.
-If the KUKSA.val Databroker or KUKSA.val Server requires authentication the `tls` attribute in the config file
-must be set to `True` and `root_ca_path` must be set.
-The default config file include (commented) values to use if using KUKSA.val example certificates.
+The [default configuration file](config/dbc_feeder.ini) specifies that TLS shall be used.
+If the KUKSA.val Databroker or KUKSA.val Server explicitly or implicitly has been configured not to use TLS,
+then the `tls` attribute in the config file must be set to `False`.
+If the KUKSA.val Databroker or KUKSA.val Server requires authentication the `root_ca_path` must be set.
+The default config file include values to use if using KUKSA.val example certificates.
 
 The feeder verifies that the Databroker/Server presents a certificate with a name matching the server.
 The KUKSA.val default server certificate include `Server`, `localhost` and `127.0.0.1` as names, but due to a limitation

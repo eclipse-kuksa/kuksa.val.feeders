@@ -436,7 +436,7 @@ def _get_kuksa_val_client(command_line_parser: argparse.Namespace,
         client.set_port(config.getint(CONFIG_SECTION_GENERAL, CONFIG_OPTION_PORT))
 
     if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED):
-        client.set_tls(config.getboolean(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED, fallback=False))
+        client.set_tls(config.getboolean(CONFIG_SECTION_GENERAL, CONFIG_OPTION_TLS_ENABLED, fallback=True))
 
     if config.has_option(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ROOT_CA_PATH):
         path = config.get(CONFIG_SECTION_GENERAL, CONFIG_OPTION_ROOT_CA_PATH)

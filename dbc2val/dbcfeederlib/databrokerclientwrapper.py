@@ -44,9 +44,11 @@ class DatabrokerClientWrapper(clientwrapper.ClientWrapper):
     https://github.com/eclipse/kuksa.val/blob/master/kuksa-client/kuksa_client/grpc/__init__.py
     """
     # No default token path given as no default token included in packages/containers
+    # Note that Databroker by default does not requie TLS; so if using Databroker with default setup
+    # then you must explicitly set tls to False
     def __init__(self, ip: str = "127.0.0.1", port: int = 55555,
                  token_path: str = "",
-                 tls: bool = False):
+                 tls: bool = True):
         """
         Init Databroker client wrapper, by default with TLS
         """
