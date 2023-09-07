@@ -11,6 +11,10 @@ on:
      - "gps2val/**"
   workflow_dispatch:
 
+concurrency:
+      group: ${{ github.ref }}-${{ github.workflow }}
+      cancel-in-progress: true
+
 env:
   EPHEMERAL_IMAGE: "ttl.sh/kuksa.val.feeders/gps-${{ github.sha }}"
 
