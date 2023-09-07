@@ -22,6 +22,10 @@ on:
       - "dds2val/**"
   workflow_dispatch:
 
+concurrency:
+      group: ${{ github.ref }}-${{ github.workflow }}
+      cancel-in-progress: true
+
 jobs:
   check-dds-feeder:
     name: "Check DDS feeder"
