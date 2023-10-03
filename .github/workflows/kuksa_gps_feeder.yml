@@ -6,7 +6,6 @@ on:
   pull_request:
     paths:
      - ".github/workflows/kuksa_gps_feeder.yml"
-     - ".github/workflows/check_push_rights.yml"
      - ".github/actions/post-container-location/action.yml"
      - "gps2val/**"
   workflow_dispatch:
@@ -20,14 +19,14 @@ env:
 
 jobs:
 
-  checkrights:
-    uses: ./.github/workflows/check_push_rights.yml
+  check_ghcr_push:
+    uses: eclipse-kuksa/kuksa-actions/.github/workflows/check_ghcr_push.yml@2
     secrets: inherit
 
   build-self-hosted:
     if: ${{ github.repository_owner == 'eclipse' }}
     runs-on: [ self-hosted ]
-    needs: checkrights
+    needs: check_ghcr_push
 
     # With default permissions, release action fails on forks
     permissions:
@@ -51,13 +50,8 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
 
-    - name: Check Rights
-      run: |
-        echo "### [self-hosted] event:[${{ github.event_name }}], have_secrets: ${{ needs.checkrights.outputs.have_secrets }}"
-      shell: bash
-
     - name: Log in to the Container registry
-      if: needs.checkrights.outputs.have_secrets == 'true'
+      if: needs.check_ghcr_push.outputs.push == 'true'
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
@@ -66,7 +60,7 @@ jobs:
 
 
     - name: Build and push KUKSA gps feeder container image and push to ghcr.io
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'true'
       uses: docker/build-push-action@v4
       with:
         platforms: |
@@ -79,7 +73,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
     - name: Posting ghcr.io Summary
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'true'
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ steps.meta.outputs.tags }}
@@ -89,7 +83,7 @@ jobs:
     # NOTE: linux/arm64 platform removed as we are getting Error 413 from ttl.sh due to image size.
     # Only merging to main / release should build multiarch image and push to ghcr.io
     - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
-      if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'false'
       uses: docker/build-push-action@v4
       with:
         platforms: |
@@ -100,7 +94,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
     - name: Posting ttl.sh Summary
-      if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'false'
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ env.EPHEMERAL_IMAGE }}
@@ -112,7 +106,7 @@ jobs:
     # we don't have self hosted runners on forked repos, to optimize builds just amd64 image will be built
     if: ${{ github.repository_owner != 'eclipse' }}
     runs-on: ubuntu-latest
-    needs: checkrights
+    needs: check_ghcr_push
 
     # With default permissions, release action fails on forks
     permissions:
@@ -144,13 +138,8 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
 
-    - name: Check Rights
-      run: |
-        echo "### event:[${{ github.event_name }}], have_secrets: ${{ needs.checkrights.outputs.have_secrets }}"
-      shell: bash
-
     - name: Log in to the Container registry
-      if: needs.checkrights.outputs.have_secrets == 'true'
+      if: needs.check_ghcr_push.outputs.push == 'true'
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
@@ -159,7 +148,7 @@ jobs:
 
 
     - name: Build and push KUKSA gps feeder container image and push to ghcr.io
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'true'
       uses: docker/build-push-action@v4
       with:
         platforms: |
@@ -171,7 +160,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
     - name: Posting ghcr.io Summary
-      if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'true'
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ steps.meta.outputs.tags }}
@@ -180,7 +169,7 @@ jobs:
 
 
     - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
-      if:  ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'false'
       uses: docker/build-push-action@v4
       with:
         platforms: |
@@ -191,7 +180,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
     - name: Posting ttl.sh Summary
-      if: ${{ needs.checkrights.outputs.have_secrets == 'false' || github.event_name == 'pull_request' }}
+      if: needs.check_ghcr_push.outputs.push == 'false'
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ env.EPHEMERAL_IMAGE }}
