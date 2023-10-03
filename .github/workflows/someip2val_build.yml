@@ -19,7 +19,6 @@ on:
   pull_request:
     paths:
       - ".github/workflows/someip2val_build.yml"
-      - ".github/workflows/check_push_rights.yml"
       - "someip2val/**"
   workflow_dispatch:
     inputs:
@@ -34,16 +33,17 @@ concurrency:
 
 jobs:
 
-  checkrights:
-    uses: ./.github/workflows/check_push_rights.yml
+  check_ghcr_push:
+    uses: eclipse-kuksa/kuksa-actions/.github/workflows/check_ghcr_push.yml@2
     secrets: inherit
 
   build:
     name: Build Binaries
     # build if explicitly requested or merging to main
-    if: ${{ github.event.inputs.build_binaries == 'true' || (needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request') }}
+    if: ${{ github.event.inputs.build_binaries == 'true' || (needs.check_ghcr_push.outputs.push == 'true') }}
     # reduce runtime requirements from ubuntu, ubuntu-18.04 fails for aarch64
     runs-on: ubuntu-20.04
+    needs: check_ghcr_push
     strategy:
       matrix:
         target-arch: [x86_64, aarch64]
@@ -79,18 +79,18 @@ jobs:
     # reduce runtime requirements from ubuntu, ubuntu-18.04 fails for aarch64
     runs-on: ubuntu-20.04
     name: Build Docker
-    needs: checkrights
+    needs: check_ghcr_push
 
     steps:
 
       - name: Check Setup
         env:
-          OUT_HAVE_SECRETS: ${{ needs.checkrights.outputs.have_secrets }}
+          OUT_GHCR_PUSH: ${{ needs.check_ghcr_push.outputs.push }}
           OUT_USER_NAME: ${{ github.repository_owner }}
           OUT_EVENT_NAME: ${{ github.event_name }}
         run: |
           echo
-          echo "### have_secrets : $OUT_HAVE_SECRETS"
+          echo "### ghcr_push    : $OUT_GHCR_PUSH"
           echo "### username     : $OUT_USER_NAME"
           echo "### event_name   : $OUT_EVENT_NAME"
           echo
@@ -106,7 +106,7 @@ jobs:
 
       - name: Log in to the Container registry
         uses: docker/login-action@v2
-        if: needs.checkrights.outputs.have_secrets == 'true'
+        if: needs.check_ghcr_push.outputs.push == 'true'
         with:
             registry: ghcr.io
             username: ${{ github.repository_owner }}
@@ -126,7 +126,7 @@ jobs:
             type=semver,pattern={{major}}
 
       - name: "Build someip2val container and push to ghcr.io"
-        if: ${{ needs.checkrights.outputs.have_secrets == 'true' && github.event_name != 'pull_request' }}
+        if: needs.check_ghcr_push.outputs.push == 'true'
         id: image_build_ghcr
         uses: docker/build-push-action@v4
         with:
@@ -144,7 +144,7 @@ jobs:
           provenance: false
 
       - name: "Build someip2val container and push to ttl.sh"
-        if: ${{ needs.checkrights.outputs.have_secrets != 'true' || github.event_name == 'pull_request' }}
+        if: needs.check_ghcr_push.outputs.push == 'false'
         id: image_build_ttl
         uses: docker/build-push-action@v4
         with:
