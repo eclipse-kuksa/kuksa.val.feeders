@@ -102,14 +102,18 @@ async def process_rows(client, rows):
     '''Processes a single row from the CSV-file and write the
      recorded signal to the data broker through the client.'''
     for row in rows:
-        entry = DataEntry(
-            row['signal'],
-            value=Datapoint(value=row['value']),
-            )
         if row['field'] == "current":
+            entry = DataEntry(
+                row['signal'],
+                value=Datapoint(value=row['value']),
+            )
             updates = (EntryUpdate(entry, (Field.VALUE,)),)
             logging.info("Update current value of %s to %s", row['signal'], row['value'])
         elif row['field'] == "target":
+            entry = DataEntry(
+                row['signal'],
+                actuator_target=Datapoint(value=row['value'])
+            )
             updates = (EntryUpdate(entry, (Field.ACTUATOR_TARGET,)),)
             logging.info("Update target value of %s to %s", row['signal'], row['value'])
         else:
