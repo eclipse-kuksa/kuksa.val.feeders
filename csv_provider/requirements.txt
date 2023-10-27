@@ -1,2 +1,2 @@
 # If pre-releases (e.g. X.YaN) are specified you must use --pre when installing
-kuksa-client ~= 0.4.0
+kuksa-client ~= 0.4.1
