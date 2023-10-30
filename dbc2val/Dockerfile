@@ -20,7 +20,7 @@ ARG BUILDPLATFORM
 
 RUN echo "-- Running on $BUILDPLATFORM, building for $TARGETPLATFORM"
 
-RUN apk update && apk add alpine-sdk linux-headers
+RUN apk update && apk add alpine-sdk linux-headers cmake openblas-dev
 
 COPY . /
 
