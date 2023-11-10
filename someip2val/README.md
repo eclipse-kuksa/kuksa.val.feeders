@@ -62,9 +62,9 @@ SOME/IP feeder is [COVESA / vsomeip](https://github.com/COVESA/vsomeip/) applica
     ``` bash
     ./vscode-conan.sh
     ```
-1. Install and start KUKSA Databroker (version with collector interface supporting `SubscribeActuatorTargets`)
+1. Install and start recent KUKSA Databroker:
     ``` bash
-    docker run --rm -it -p 55555:55555/tcp ghcr.io/boschglobal/kuksa.val/databroker:0.0.2
+    docker run --rm -it -p 55555:55555/tcp --name databroker ghcr.io/eclipse/kuksa.val/databroker:master
     ```
 
 ### Building someip2val
