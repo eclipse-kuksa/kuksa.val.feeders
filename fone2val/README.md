@@ -35,13 +35,7 @@ b. We can make note of the UDP port number (20778)
 c. We need to update the laptop/PC IP address for UDP communication.
 
 ```
-
-## Authorization
-
-[F1 feeder](./carTelemetry_feeder.py) will try to authenticate itself towards the KUKSA.val Server/Databroker if a token is given.
-Note that the KUKSA.val Databroker by default does not require authentication.
-
-## Running the feeder
+#### Running the feeder
 
 Now to run the feeder execute the following command in your favorite Command Line Interface (Terminal):
 ```
@@ -56,6 +50,13 @@ Vehicle Fuel Level in percent,
 Wear level of each Tire in percent,
 Left and right Wing dmg in percent,
 and last Vehicle last Lap Time
+
+## Authorization
+
+[F1 feeder](./carTelemetry_feeder.py) will try to authenticate itself towards the KUKSA.val Server/Databroker if a token is given.
+Note that the KUKSA.val Databroker by default does not require authentication.
+
+
 ### Troubleshouting
 if the python feeder command fails:
 ```
