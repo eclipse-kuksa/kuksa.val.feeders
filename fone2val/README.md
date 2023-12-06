@@ -10,7 +10,7 @@ docker run -it -v ./VSS:/VSS --rm --net=host -p 127.0.0.1:8090:8090 -e LOG_LEVEL
 ```
 ## Install dependencies and execution
 
-General Information: This Project was run on an Ubuntu VM.
+General Information: This Project was run on an Ubuntu VM in cooperation with [`Fraunhofer IEM`](https://www.iem.fraunhofer.de/) .
 
 #### carTelemetry_feeder.ini
 ```
@@ -33,7 +33,6 @@ PS5 Telemetry Settings:
 a. We have to enable the telemetry feature in the Game Settings.
 b. We can make note of the UDP port number (20778)
 c. We need to update the laptop/PC IP address for UDP communication.
-
 ```
 #### Running the feeder
 
