@@ -16,7 +16,7 @@ General Information: This Project was run on an Ubuntu VM and created in coopera
 
 #### carTelemetry_feeder.ini
 ```
-a. The F1 telemetry port number for communication has to be updated in the ./config/carTelemetry_feeder.ini file.
+a. The F1 telemetry port/IP number for communication has to be updated in the ./config/carTelemetry_feeder.ini file.
 	IP address of the Host/VM for example 192.168.178.154
 	same with the Port: fore example 20778
 
@@ -25,7 +25,7 @@ b. The listenerIPAddr of the host/VM a also needs to be updated in the ./config/
 	it has to match with the given IP in step a.
 
 c. The PS5_UDPPort of the host/VM a also needs to be updated in the ./config/carTelemetry_feeder.ini file.
-	it has to match with the given IP in step a.
+	it has to match with the given Port in step a.
 
 d. kuksa.val IP for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file. Normaly set to localhost or 127.0.0.1.
 
