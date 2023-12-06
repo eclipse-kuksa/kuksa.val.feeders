@@ -41,7 +41,7 @@ Now to run the feeder execute the following command in your favorite Command Lin
 ```
 python3 carTelemetry_feeder_copy.py
 ```
-#### What Data is send?
+#### What Data is sent?
 
 Currently we are sending the following data:
 ```
