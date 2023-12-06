@@ -18,7 +18,6 @@ class Kuksa_Client():
         if "kuksa_val" not in config:
             print("kuksa_val section missing from configuration, exiting")
             sys.exit(-1)
-        provider_config=config['kuksa_val']
     def get_timeCheck(self):
         return self._lastTimeCheck
     def set_timeCheck(self,value):
@@ -44,15 +43,12 @@ class carTelemetry_Client():
 
     def __init__(self, config, consumer):
         print("Init carTelemetry client...")
-        
-        if "carTelemetry" not in config:
-            print("carTelemetry section missing from configuration, exiting")
+        if "listenerIPAddr" not in config:
+            print("listenerIPAddr section missing from configuration, exiting")
             sys.exit(-1)
-        
-        self.consumer = consumer
-        provider_config=config['carTelemetry']
-        self.interval = provider_config.getint('interval', 1)
-        
+        if "PS5_UDPPort" not in config:
+            print("PS5_UDPPort section missing from configuration, exiting")
+            sys.exit(-1)
         #extract carTelemetry Data
         print("Connecting to extract CarTelemetry Data")
         

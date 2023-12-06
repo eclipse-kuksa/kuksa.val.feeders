@@ -4,7 +4,7 @@ The feeder consumes [F1 Telemetrydata](https://www.ea.com/able/resources/f1-2021
 [![Everything Is AWESOME](https://i.stack.imgur.com/q3ceS.png)](https://youtu.be/StTqXEQ2l-Y?t=35s "Everything Is AWESOME")
 ### Feeder
 The custom [VSS File](./VSS/vss.json) contains specification points for further Application use.
-The [`carTelemetry_feeder.ini`](./config/carTelemetry_feeder.ini)  contains `kuksa.val`, `listenerIPAddr`, `PS5_UDPPort` and `carTelemetry` configuration.
+The [`carTelemetry_feeder.ini`](./config/carTelemetry_feeder.ini)  contains `kuksa.val`, `listenerIPAddr` and `PS5_UDPPort` configuration.
 
 Before starting the [F1 feeder](./carTelemetry_feeder.py), you need to start `kuksa.val databroker` docker by running the following command :
 ```
@@ -16,16 +16,29 @@ General Information: This Project was run on an Ubuntu VM and created in coopera
 
 #### carTelemetry_feeder.ini
 ```
-a. The F1 telemetry port number for communication is updated in the ./config/carTelemetry_feeder.ini file.
-	F1 - Telemetry - Port: 20778
+a. The F1 telemetry port number for communication has to be updated in the ./config/carTelemetry_feeder.ini file.
+	IP address of the Host/VM for example 192.168.178.154
+	same with the Port: fore example 20778
+
 	
-b. The listener host address also needs to be updated in the ./config/carTelemetry_feeder.ini  file
+b. The listenerIPAddr of the host/VM a also needs to be updated in the ./config/carTelemetry_feeder.ini file.
+	it has to match with the given IP in step a.
+
+c. The PS5_UDPPort of the host/VM a also needs to be updated in the ./config/carTelemetry_feeder.ini file.
+	it has to match with the given IP in step a.
+
+d. kuksa.val IP for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file. Normaly set to localhost or 127.0.0.1.
+
+e. kuksa.val port for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file. Normaly set to localhost or 55555.
 ```
 
 #### Dependencies:
 ```
 We need to install the python F1 Module
 $pip install Telemetry-F1-2021
+
+We also need to install kuksa-client (if not already done)
+$pip install kuksa-client
 ```
 
 #### PS5 Settings
@@ -66,5 +79,5 @@ if the python feeder command fails:
 (Errno 99 Cannot assign requested Address) 
 1. use the Linux command 'ifconfig' in your terminal
 2. find the following line: enp0s3: inet 192.168.178.*** 
---> and copy the IP into the [`carTelemetry_feeder.ini`](./config/carTelemetry_feeder.ini) file
+--> and copy the IP into the ./config/carTelemetry_feeder.ini file
 ```
