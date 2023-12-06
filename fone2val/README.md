@@ -44,12 +44,14 @@ python3 carTelemetry_feeder_copy.py
 #### What Data is send?
 
 Currently we are sending the following data:
+```
 Vehicle Speed in kmh,
 Vehicle Engine RPM,
 Vehicle Fuel Level in percent,
 Wear level of each Tire in percent,
 Left and right Wing dmg in percent,
 and last Vehicle last Lap Time
+```
 
 ## Authorization
 
