@@ -5,6 +5,7 @@ This are data feeders for VSS based systems. The feeders here work with [KUKSA.v
 
 Name | Description
 ---- | -----------
+[F1 feeder](./fone2val)        | F1 Telemetrydata source for KUKSA.val Databroker
 [GPS feeder](./gps2val)        | GPS data source for KUKSA.val Server and KUKSA.val Databroker
 [DBC feeder](./dbc2val)        | DBC feeder for for KUKSA.val Server and KUKSA.val Databroker
 [SOME/IP feeder](./someip2val) | SOME/IP feeder for KUKSA.val Databroker
