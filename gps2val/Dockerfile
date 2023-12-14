@@ -11,22 +11,26 @@
 # * SPDX-License-Identifier: Apache-2.0
 # ********************************************************************************/
 
-FROM python:3.10-alpine as build
+FROM --platform=$TARGETPLATFORM python:3.10-slim-bookworm as builder
 
-# alpine-sdk and linux-headers needed for Alpine to build grpcio for aarch64, not needed for platforms with prebuilt grpcio
-RUN apk add --no-cache alpine-sdk linux-headers
 ADD . /kuksa_gps_feeder
 WORKDIR /kuksa_gps_feeder
 RUN pip install --upgrade pip
-# Note - Installing grpcio (inherited from kuksa-viss-client) takes very long time (40-60 minutes) on Alpine
-# Note - if relying on kuksa-client pre-releases you must add --pre to the line below
 RUN pip install --target /kuksa_gps_feeder --no-cache-dir -r requirements.txt
 
 
-FROM python:3.10-alpine
+# Debian 12 is bookworm, so the glibc version matches. Distroless is a lot smaller than
+# Debian slim versions
+# For development add :debug like this
+# FROM gcr.io/distroless/base-debian12:debug  to get a busybox shell as well
+FROM --platform=$TARGETPLATFORM python:3.10-slim-bookworm
 
-RUN apk add --no-cache gpsd libstdc++
-COPY --from=build /kuksa_gps_feeder /kuksa_gps_feeder
+RUN apt update && apt install -y gpsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# RUN apk add -yy --no-cache gpsd
+COPY --from=builder /kuksa_gps_feeder /kuksa_gps_feeder
+COPY --from=builder /bin/sh /bin/sh
 WORKDIR /kuksa_gps_feeder
 
 ENV PYTHONUNBUFFERED=yes
