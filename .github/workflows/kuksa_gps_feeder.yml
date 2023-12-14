@@ -23,103 +23,17 @@ jobs:
     uses: eclipse-kuksa/kuksa-actions/.github/workflows/check_ghcr_push.yml@2
     secrets: inherit
 
-  build-self-hosted:
-    if: ${{ github.repository_owner == 'eclipse' }}
-    runs-on: [ self-hosted ]
-    needs: check_ghcr_push
 
-    # With default permissions, release action fails on forks
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@v4
-      with:
-        # list of Docker images to use as base name for tags
-        images: ghcr.io/${{ github.repository }}/gps
-        # generate Docker tags based on the following events/attributes
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-
-    - name: Log in to the Container registry
-      if: needs.check_ghcr_push.outputs.push == 'true'
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-
-    - name: Build and push KUKSA gps feeder container image and push to ghcr.io
-      if: needs.check_ghcr_push.outputs.push == 'true'
-      uses: docker/build-push-action@v4
-      with:
-        platforms: |
-          linux/amd64
-          linux/arm64
-        context: gps2val
-        push: true
-        tags: |
-          ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-    - name: Posting ghcr.io Summary
-      if: needs.check_ghcr_push.outputs.push == 'true'
-      uses: ./.github/actions/post-container-location
-      with:
-        image: ${{ steps.meta.outputs.tags }}
-        docker-run-args: "-it --rm"
-
-
-    # NOTE: linux/arm64 platform removed as we are getting Error 413 from ttl.sh due to image size.
-    # Only merging to main / release should build multiarch image and push to ghcr.io
-    - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
-      if: needs.check_ghcr_push.outputs.push == 'false'
-      uses: docker/build-push-action@v4
-      with:
-        platforms: |
-          linux/amd64
-        context: gps2val
-        push: true
-        tags: ${{ env.EPHEMERAL_IMAGE }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-    - name: Posting ttl.sh Summary
-      if: needs.check_ghcr_push.outputs.push == 'false'
-      uses: ./.github/actions/post-container-location
-      with:
-        image: ${{ env.EPHEMERAL_IMAGE }}
-        docker-run-args: "-it --rm"
-        message: "**NOTE:** Only **linux/amd64** image is included (ttl.sh push fails on big images)"
-
-
-  build:
-    # we don't have self hosted runners on forked repos, to optimize builds just amd64 image will be built
-    if: ${{ github.repository_owner != 'eclipse' }}
+  build-gps-feeder:
+    name: "Build GPS feeder"
     runs-on: ubuntu-latest
     needs: check_ghcr_push
 
-    # With default permissions, release action fails on forks
-    permissions:
-      contents: read
-      packages: write
-
     steps:
     - uses: actions/checkout@v3
 
-    ## NOTE: Uncomment following step if you want to build arm64 image without self-hosted runner on eclipse. It needs ~3h to finish!
-
-    # - name: Set up QEMU
-    #   uses: docker/setup-qemu-action@v2
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -147,16 +61,30 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
 
-    - name: Build and push KUKSA gps feeder container image and push to ghcr.io
+    - name: Build and push KUKSA gps feeder container image and push to ghcr.io and ttl.sh
       if: needs.check_ghcr_push.outputs.push == 'true'
       uses: docker/build-push-action@v4
       with:
         platforms: |
           linux/amd64
+          linux/arm64
         context: gps2val
         push: true
         tags: |
           ${{ steps.meta.outputs.tags }}
+          ${{ env.EPHEMERAL_IMAGE }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
+      if: needs.check_ghcr_push.outputs.push == 'false'
+      uses: docker/build-push-action@v4
+      with:
+        platforms: |
+          linux/amd64
+          linux/arm64
+        context: gps2val
+        push: true
+        tags: ${{ env.EPHEMERAL_IMAGE }}
         labels: ${{ steps.meta.outputs.labels }}
 
     - name: Posting ghcr.io Summary
@@ -165,24 +93,9 @@ jobs:
       with:
         image: ${{ steps.meta.outputs.tags }}
         docker-run-args: "-it --rm"
-        message: "**NOTE:** Only **linux/amd64** image is included (self-hosted runner not available on forks)"
-
-
-    - name: Build ephemeral KUKSA gps feeder and push to ttl.sh
-      if: needs.check_ghcr_push.outputs.push == 'false'
-      uses: docker/build-push-action@v4
-      with:
-        platforms: |
-          linux/amd64
-        context: gps2val
-        push: true
-        tags: ${{ env.EPHEMERAL_IMAGE }}
-        labels: ${{ steps.meta.outputs.labels }}
 
     - name: Posting ttl.sh Summary
-      if: needs.check_ghcr_push.outputs.push == 'false'
       uses: ./.github/actions/post-container-location
       with:
         image: ${{ env.EPHEMERAL_IMAGE }}
         docker-run-args: "-it --rm"
-        message: "**NOTE:** Only **linux/amd64** image is included (self-hosted runner not available on forks)"
