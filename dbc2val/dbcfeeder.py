@@ -499,6 +499,9 @@ def main(argv):
     args = parser.parse_args()
     config = _parse_config(args.config)
 
+    log.warn("DBC Feeder has migrated to a new repository")
+    log.info("Consider using CAN provider in https://github.com/eclipse-kuksa/kuksa-can-provider instead")
+
     if args.dbc2val:
         use_dbc2val = True
     elif args.no_dbc2val:
