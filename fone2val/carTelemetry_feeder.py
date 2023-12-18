@@ -18,10 +18,6 @@ class Kuksa_Client():
         if "kuksa_val" not in config:
             print("kuksa_val section missing from configuration, exiting")
             sys.exit(-1)
-    def get_timeCheck(self):
-        return self._lastTimeCheck
-    def set_timeCheck(self,value):
-        self._lastTimeCheck=value
     def shutdown(self):
         self.client.stop()
 
