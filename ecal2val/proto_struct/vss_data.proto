@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package proto_struct;
+
+message VssData
+{
+  string description = 1;
+  int32  data_int    = 2;
+  float  data_float  = 3;
+}
