@@ -14,7 +14,7 @@
 ########################################################################
 
 '''
-Publisher publishing topics via protobuf message through eCAL communication.
+Publisher publishing vss topics via eCAL communication.
 '''
 
 import sys
@@ -23,32 +23,32 @@ import time
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 
-import proto_struct.vss_data_pb2 as vss_data_pb2
+import proto.proto_struct_pb2 as proto_struct_pb2
+
+from cast_func import *
 
 
-ecal_core.initialize(sys.argv, "Python Protobuf")
+ecal_core.initialize(sys.argv, "ecal2val")
 
-pub = ProtoPublisher("vss_data_python_protobuf_topic", vss_data_pb2.VssData)
+pub = ProtoPublisher("vss_topic", proto_struct_pb2.DataEntry)
 
-'''Reads arbitrary data from 'mock_data.txt'
-   and publishes it in the form of a protobuf message.'''
+'''
+Reads arbitrary data from 'mock_data.txt'
+and publishes it in the form of a protobuf message.
+'''
+
 while ecal_core.ok():
     with open("mock_data.txt", 'r', encoding='utf-8') as file:
         for line in file:
-            description, data = line.rstrip().split()
+            path, value, data_type = line.split()
 
-            protobuf_message = vss_data_pb2.VssData()
-            protobuf_message.description = description
-            protobuf_message.data_int = 0
-            protobuf_message.data_float = 0
+            entry = proto_struct_pb2.DataEntry()
+            entry.path = path
+            exec(f"entry.value.{data_type} = {data_type}(value)")
+            entry.data_type = data_type
 
-            try:
-                protobuf_message.data_int = int(data)
-            except ValueError:
-                protobuf_message.data_float = float(data)
-
-            pub.send(protobuf_message)
-            print("{} published".format(description))
+            pub.send(entry)
+            print(f"{path} published")
 
             time.sleep(1)
 
