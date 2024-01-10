@@ -14,7 +14,8 @@
 ########################################################################
 
 '''
-Subscriber subscribing topics through ECAL communication and sending to KUKSA.val
+Subscriber subscribing vss topics via ECAL communication
+and sending it to KUKSA.val databroker.
 '''
 
 import sys
@@ -23,36 +24,36 @@ import time
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 
-import proto_struct.vss_data_pb2 as vss_data_pb2
+import proto.proto_struct_pb2 as proto_struct_pb2
 
-from kuksa_client.grpc import VSSClient
 from kuksa_client.grpc import Datapoint
+from kuksa_client.grpc import DataEntry
+from kuksa_client.grpc import EntryUpdate
+from kuksa_client.grpc import Field
+from kuksa_client.grpc import VSSClient
 
 
-ecal_core.initialize(sys.argv, "Python Protobuf")
+ecal_core.initialize(sys.argv, "ecal2val")
 
-sub = ProtoSubscriber("vss_data_python_protobuf_topic", vss_data_pb2.VssData)
+sub = ProtoSubscriber("vss_topic", proto_struct_pb2.DataEntry)
+
+'''
+This callback function subscribes topics
+and writes the data to the databroker.
+'''
 
 
-'''This callback function subscribes topics
-   and writes the date in the protobuf
-   to the data broker through the client.'''
-
-
-def callback(topic_name, vss_data_proto_msg, time):
+def callback(topic_name, msg, time):
     with VSSClient('127.0.0.1', 55555) as client:
-        if vss_data_proto_msg.data_int != 0:
-            client.set_current_values({
-                vss_data_proto_msg.description: Datapoint(vss_data_proto_msg.data_int),
-            })
-        elif vss_data_proto_msg.data_float != 0:
-            client.set_current_values({
-                vss_data_proto_msg.description: Datapoint(vss_data_proto_msg.data_float),
-            })
-        else:
-            client.set_current_values({
-                vss_data_proto_msg.description: Datapoint(0),
-            })
+        entry = DataEntry(
+            path = msg.path,
+            value = Datapoint(value = eval(f"msg.value.{msg.data_type}")),
+        )
+        updates = (EntryUpdate(entry, (Field.VALUE,)),)
+
+        client.set(updates=updates)
+
+        print(f'{msg.path} subscribed & written')
 
 
 sub.set_callback(callback)
