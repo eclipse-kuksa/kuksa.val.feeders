@@ -1,0 +1,35 @@
+/********************************************************************************
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Apache License 2.0 which is available at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
+syntax = "proto3";
+
+package proto_struct;
+
+message DataEntry {
+  string path = 1;
+  DataPoint value = 2;
+  string data_type = 3;
+}
+
+message DataPoint {
+  oneof value {
+    string string            = 1;
+    bool bool                = 2;
+    sint32 int32             = 3;
+    sint64 int64             = 4;
+    uint32 uint32            = 5;
+    uint64 uint64            = 6;
+    float float              = 7;
+    double double            = 8;
+  }
+}
