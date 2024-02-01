@@ -1,7 +1,0 @@
-# If pre-releases (e.g. X.YaN) are specified you must use --pre when installing
-# feeder
-cyclonedds
-kuksa-client ~= 0.4.1
-# mapper
-pyyaml
-py-expression-eval
