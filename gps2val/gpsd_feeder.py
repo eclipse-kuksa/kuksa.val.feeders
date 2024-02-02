@@ -243,6 +243,9 @@ if __name__ == "__main__":
     # set root loglevel etc
     init_logging(loglevels["root"])
 
+    log.warn("GPS Feeder has migrated to a new repository")
+    log.info("Consider using GPS provider in https://github.com/eclipse-kuksa/kuksa-gps-provider instead")
+
     # set loglevels for other loggers
     for logger, level in loglevels.items():
         if logger != "root":
