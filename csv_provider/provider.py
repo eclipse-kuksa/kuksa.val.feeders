@@ -75,6 +75,10 @@ async def main():
         root_path = None
     if isinstance(numeric_value, int):
         logging.basicConfig(encoding='utf-8', level=numeric_value)
+
+    logging.warning("CSV Provider has migrated to a new repository")
+    logging.info("Consider using CSV provider in https://github.com/eclipse-kuksa/kuksa-csv-provider instead")
+
     try:
         async with VSSClient(args.address, args.port, root_certificates=root_path,
                              tls_server_name=args.tls_server_name) as client:
