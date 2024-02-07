@@ -173,6 +173,9 @@ int main(int argc, char** argv) {
     std::string arg_token("--token");
     std::string arg_help("--help");
 
+    std::cout << "WARNING: SOMEIP Provider has migrated to a new repository" << std::endl;
+    std::cout << "INFO: Consider using SOMEIP provider in https://github.com/eclipse-kuksa/kuksa-someip-provider instead" << std::endl;
+
     // FIXME: update someip settings from command line!
     for (int i = 1; i < argc; i++) {
         std::string arg_val = argv[i];
