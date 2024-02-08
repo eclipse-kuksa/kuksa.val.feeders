@@ -1,7 +1,8 @@
 # PS4/PS5 - Formula 1, 2021 Feeder
+### This demonstrator serves as a non-commercial research project, highlighting its focus on academic exploration rather than commercial endeavors.
 The feeder consumes [F1 Telemetrydata](https://www.ea.com/able/resources/f1-2021/ps4/telemetry) as datasource and pushes data to the kuksa.val Databroker.
-### Video Demo
-[![Everything Is AWESOME](https://i.stack.imgur.com/q3ceS.png)](https://youtu.be/StTqXEQ2l-Y?t=35s "Everything Is AWESOME")
+### Video Demo (Click to Watch!)
+[![Demo Video](https://img.youtube.com/vi/7C_yHItbJNU/0.jpg)](https://www.youtube.com/watch?v=7C_yHItbJNU "Demo Video - Click to Watch!")
 ### Feeder
 The custom [VSS File](./VSS/vss.json) contains specification points for further Application use.\
 The [`carTelemetry_feeder.ini`](./config/carTelemetry_feeder.ini)  contains `kuksa.val`, `listenerIPAddr` and `PS5_UDPPort` configuration.
