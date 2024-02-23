@@ -1,5 +1,10 @@
 # Usage of kuksa.val replay feature
 
+*Note: Both [KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) and*
+*Replay are deprecated and will reach End-of-Life 2024-12-31!*
+*For [KUKSA Databroker](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker) the*
+*[KUKSA CSV Provider](https://github.com/eclipse-kuksa/kuksa-csv-provider) offer similar functionality.*
+
 ![kuksa.val Logo](../doc/img/logo.png)
 
 Once you recorded your server in- and outputs to your record file using the [record feature](https://github.com/eclipse/kuksa.val/blob/master/kuksa-val-server/src/VssDatabase_Record.cpp) the replay script can replay the same data with exact timing into the `kuksa.val` server.

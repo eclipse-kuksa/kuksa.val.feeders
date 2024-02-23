@@ -6,7 +6,8 @@
 
 Name | Description
 ---- | -----------
-[Replay](./replay)             |[KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) replay script for previously recorded files, created by running KUKSA Server with `--record` argument
+[Replay](./replay)             |[KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) replay script for previously recorded files, created by running KUKSA Server with `--record` argument **Note: Replay is deprecated and will reach End-of-Life 2024-12-31!**
+[ecal2val](./ecal2val)             |Provider for eCAL data to [KUKSA Databroker](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker)
 
 ## Providers moved to new repositories
 
