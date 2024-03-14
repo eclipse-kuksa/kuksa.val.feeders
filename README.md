@@ -17,6 +17,7 @@ Name | Description
 * [SOME/IP Provider](https://github.com/eclipse-kuksa/kuksa-someip-provider)
 * [DDS Provider](https://github.com/eclipse-kuksa/kuksa-dds-provider)
 * [CSV Provider](https://github.com/eclipse-kuksa/kuksa-csv-provider)
+* [eCAL Provider](https://github.com/eclipse-kuksa/kuksa-incubation/tree/main/ecal2val)
 
 ## Pre-commit set up
 This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.
