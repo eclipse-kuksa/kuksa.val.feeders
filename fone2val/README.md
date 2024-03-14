@@ -22,19 +22,19 @@ a. The F1 telemetry port/IP number for communication has to be updated in the ./
 	> Same with the Port: fore example 20778
 
 b. The listenerIPAddr of the host/VM a also needs to be updated in the ./config/carTelemetry_feeder.ini file.
-	
+
 	> It has to match with the given IP in step a.
 
 c. The PS5_UDPPort of the host/VM a also needs to be updated in the ./config/carTelemetry_feeder.ini file.
-	
+
 	> It has to match with the given Port in step a.
 
-d. kuksa.val IP for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file. 
+d. kuksa.val IP for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file.
 
 	> Normally set to 127.0.0.1.
 
-e. kuksa.val port for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file. 
-	
+e. kuksa.val port for the VSSClient has to be updated in the ./config/carTelemetry_feeder.ini file.
+
 	> Normaly set to 55555.
 ```
 
@@ -84,9 +84,9 @@ Note that the KUKSA.val Databroker by default does not require authentication.
 ### Troubleshouting
 if the python feeder command fails:
 ```
-(Errno 99 Cannot assign requested Address) 
+(Errno 99 Cannot assign requested Address)
 
 	1. use the Linux command 'ifconfig' in your terminal
-	2. find the following line: enp0s3: inet 192.168.178.*** 
+	2. find the following line: enp0s3: inet 192.168.178.***
 	--> and copy the IP into the ./config/carTelemetry_feeder.ini file
 ```
