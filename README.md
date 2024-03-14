@@ -1,17 +1,24 @@
-# Kuksa Feeders
+# Kuksa Feeders and Providers
 ![kuksa.val Logo](./doc/img/logo.png)
 
-This are data feeders for VSS based systems. The feeders here work with [KUKSA.val](https://github.com/eclipse/kuksa.val)
+*Note: This is a legacy repository. Most providers has been moved to new repositories!*
+
 
 Name | Description
 ---- | -----------
 [F1 feeder](./fone2val)        | F1 Telemetrydata source for KUKSA.val Databroker
-[GPS feeder](./gps2val)        | GPS data source for KUKSA.val Server and KUKSA.val Databroker
-[DBC feeder](./dbc2val)        | DBC feeder for for KUKSA.val Server and KUKSA.val Databroker
-[SOME/IP feeder](./someip2val) | SOME/IP feeder for KUKSA.val Databroker
-[DDS Provider](./dds2val)      | DDS provider for KUKSA.val Databroker
-[Replay](./replay)             | KUKSA.val Server replay script for previously recorded files, created by providing KUKSA.val Server with `--record` argument
-[CSV provider](./csv_provider) | Script to replay VSS signals to KUKSA.val Databroker as defined in a CSV-file
+[Replay](./replay)             |[KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) replay script for previously recorded files, created by running KUKSA Server with `--record` argument **Note: Replay is deprecated and will reach End-of-Life 2024-12-31!**
+[ecal2val](./ecal2val)             |Provider for eCAL data to [KUKSA Databroker](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker)
+
+## Providers moved to new repositories
+
+
+* [GPS Provider](https://github.com/eclipse-kuksa/kuksa-gps-provider)
+* [CAN Provider (DBC feeder)](https://github.com/eclipse-kuksa/kuksa-can-provider)
+* [SOME/IP Provider](https://github.com/eclipse-kuksa/kuksa-someip-provider)
+* [DDS Provider](https://github.com/eclipse-kuksa/kuksa-dds-provider)
+* [CSV Provider](https://github.com/eclipse-kuksa/kuksa-csv-provider)
+* [eCAL Provider](https://github.com/eclipse-kuksa/kuksa-incubation/tree/main/ecal2val)
 
 ## Pre-commit set up
 This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.
