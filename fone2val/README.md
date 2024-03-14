@@ -1,8 +1,11 @@
-# PS4/PS5 - Formula 1, 2021 Feeder
+# PS4/PS5 - 2021 Formula 1  Feeder
 ### This demonstrator serves as a non-commercial research project, highlighting its focus on academic exploration rather than commercial endeavors.
 The feeder consumes [F1 Telemetrydata](https://www.ea.com/able/resources/f1-2021/ps4/telemetry) as datasource and pushes data to the kuksa.val Databroker.
 ### Video Demo (Click to Watch!)
 [![Demo Video](https://img.youtube.com/vi/7C_yHItbJNU/0.jpg)](https://www.youtube.com/watch?v=7C_yHItbJNU "Demo Video - Click to Watch!")
+
+For the remaining parts of the demonstrator, except for the feeder contained in this repository, see
+https://github.com/fraunhofer-iem/f1-telemetry-dashboard
 ### Feeder
 The custom [VSS File](./VSS/vss.json) contains specification points for further Application use.\
 The [`carTelemetry_feeder.ini`](./config/carTelemetry_feeder.ini)  contains `kuksa.val`, `listenerIPAddr` and `PS5_UDPPort` configuration.
@@ -11,9 +14,10 @@ Before starting the [F1 feeder](./carTelemetry_feeder.py), you need to start the
 ```
 docker run -it -v ./VSS:/VSS --rm --net=host -p 127.0.0.1:8090:8090 -e LOG_LEVEL=ALL ghcr.io/eclipse/kuksa.val/databroker:master --insecure --vss /VSS/vss.json
 ```
+This VSS folder, contains a custom vss.json file for this particular game.
 ## Install dependencies and execution
 
-General Information: This Project was run on an Ubuntu VM and created in cooperation with [`Fraunhofer IEM`](https://www.iem.fraunhofer.de/) .
+General Information: This Project was run on an Ubuntu VM and created in cooperation with [`Fraunhofer IEM`](https://www.iem.fraunhofer.de/) as a non-commercial research project .
 
 #### carTelemetry_feeder.ini
 ```
@@ -62,18 +66,18 @@ PS5 Telemetry Settings:
 
 Now to run the feeder, execute the following command in your favorite Command Line Interface (Terminal):
 ```
-python3 carTelemetry_feeder_copy.py
+python3 carTelemetry_feeder.py
 ```
 #### What Data is sent?
 
 Currently we are sending the following data:
 ```
-Vehicle Speed in kmh,
-Vehicle Engine RPM,
-Vehicle Fuel Level in percent,
-Wear level of each Tire in percent,
-Left and right Wing dmg in percent,
-and last Vehicle last Lap Time
+Vehicle speed in kmh,
+Vehicle engine rpm,
+Vehicle fuel level in percent,
+Wear level of each tire in percent,
+Left and right wing damage in percent,
+and last, Vehicle last Lap Time
 ```
 
 ## Authorization
