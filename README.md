@@ -7,7 +7,6 @@
 Name | Description
 ---- | -----------
 [Replay](./replay)             |[KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) replay script for previously recorded files, created by running KUKSA Server with `--record` argument **Note: Replay is deprecated and will reach End-of-Life 2024-12-31!**
-[fone2val](./fone2val)        | F1 Telemetrydata source for [KUKSA Databroker](https://github.com/eclipse/kuksa.val/tree/master/kuksa_databroker)
 
 ## Providers moved to new repositories
 
@@ -17,6 +16,8 @@ Name | Description
 * [SOME/IP Provider](https://github.com/eclipse-kuksa/kuksa-someip-provider)
 * [DDS Provider](https://github.com/eclipse-kuksa/kuksa-dds-provider)
 * [CSV Provider](https://github.com/eclipse-kuksa/kuksa-csv-provider)
+* [eCAL Provider](https://github.com/eclipse-kuksa/kuksa-incubation/tree/main/ecal2val)
+* [PS4/PS5 - 2021 Formula Provider](https://github.com/eclipse-kuksa/kuksa-incubation/tree/main/fone2val)
 
 ## Pre-commit set up
 This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.
