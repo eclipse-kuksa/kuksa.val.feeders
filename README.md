@@ -1,12 +1,7 @@
-# Kuksa Feeders and Providers
-![kuksa.val Logo](./doc/img/logo.png)
+# THIS REPOSITORY HAS BEEN ARCHIVED, see [issue 174](https://github.com/eclipse/kuksa.val.feeders/issues/174) for details.
 
-*Note: This is a legacy repository. Most providers has been moved to new repositories!*
-
-
-Name | Description
----- | -----------
-[Replay](./replay)             |[KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) replay script for previously recorded files, created by running KUKSA Server with `--record` argument **Note: Replay is deprecated and will reach End-of-Life 2024-12-31!**
+The Eclipse KUKSA project has reorganized the repositories it uses, and most content of this repository has been moved to new repositories
+within the [eclipse-kuksa](https://github.com/eclipse-kuksa) Github organization.
 
 ## Providers moved to new repositories
 
@@ -18,6 +13,15 @@ Name | Description
 * [CSV Provider](https://github.com/eclipse-kuksa/kuksa-csv-provider)
 * [eCAL Provider](https://github.com/eclipse-kuksa/kuksa-incubation/tree/main/ecal2val)
 * [PS4/PS5 - 2021 Formula Provider](https://github.com/eclipse-kuksa/kuksa-incubation/tree/main/fone2val)
+
+# Kuksa Feeders and Providers
+![kuksa.val Logo](./doc/img/logo.png)
+
+
+Name | Description
+---- | -----------
+[Replay](./replay)             |[KUKSA Server](https://github.com/eclipse/kuksa.val/tree/master/kuksa-val-server) replay script for previously recorded files, created by running KUKSA Server with `--record` argument
+
 
 ## Pre-commit set up
 This repository is set up to use [pre-commit](https://pre-commit.com/) hooks.
